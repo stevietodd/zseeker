@@ -83,6 +83,13 @@ constexpr auto LUT = []
     return arr;
 }();
 
+void printHit(int i5, int i4, int i3, int i2, int i1, int i0)
+{
+	cout << "(" << i5 << "," << i4 << "," << i3 << "," << i2 << "," << i1 << "," << i0 << "): " <<
+		LUT[i5] << "c^5 + " << LUT[i4] << "c^4 + " << LUT[i3] << "c^3 + " << LUT[i2] << "c^2 + " <<
+		LUT[i1] << "c + " << LUT[i0] << " = HIT!\n";
+}
+
 int main(int argc, char *argv[])
 {
 	int estart = 0;
@@ -170,9 +177,9 @@ int main(int argc, char *argv[])
 							// if (w % 100 == 0) {
 					cout << "w=" << w << ", " << getCurrentTimeString();
 					if (useGPU) {
-						output = testForZeta5OnGPU(lnpi, v3, LUTptr, 304468, 1216772);
+						output = testForZeta5OnGPU(lnpi, v3, LUTptr, 304468, 1216772);  // took 12-13 minutes per w-loop but supposedly isn't getting right results
 					} else {
-						for (int v = 6; v <= 304468; v++) { // LUT[4]
+						for (int v = 6; v <= 304468; v++) { // LUT[4]   // took 46-48 minutes per w-loop but gets results
 							v4 = v3 + LUT[v] * lnpi4;
 
 							//cout << "v=" << v << ", " << getCurrentTimeString();
@@ -181,7 +188,7 @@ int main(int argc, char *argv[])
 								//cout << "u=" << u << ", " << getCurrentTimeString();
 								valDif = v5 - z5;
 								if (valDif < .0000001 && valDif > -.0000001) {
-									printf("****(%d),(%d),(%d),(%d),(%d),(%d)****\n", u,v,w,x,y,z); 
+									printHit(u,v,w,x,y,z); 
 								}
 							}
 						}

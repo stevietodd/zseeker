@@ -28,20 +28,29 @@ template<typename T>
 __global__ static void compareToZeta5(T *out, const T val, const T needle, const T *coeffArray, int n) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     T expr;
-	//printf("Hello from block %d, thread %d\n", blockIdx.x, threadIdx.x);
+	//printf("Hello from block %d, thread %d => tid %d. n=%d\n", blockIdx.x, threadIdx.x, tid, n);
 
     // Handling arbitrary vector size
     if (tid < n){
+		//printf("coeff=%f\n", coeffArray[tid]);
 		expr = (val * coeffArray[tid]) - needle;
 		if (expr < .0000001 && expr > -.0000001) {
 			printf("Hello from block %d, thread %d\n", blockIdx.x, threadIdx.x);
 			out[tid] = coeffArray[tid]; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]
+		} else {
+			out[tid] = 0;
 		}
     }
 }
 
 bool InitCUDA(bool b) {
     /* CUDA Initialization */
+}
+
+void printHit(int i5, int i4, const float cubicSum, const float *coeffArray)
+{
+	cout << "(" << i5 << "," << i4 << ",?,?,?,?): " <<
+		coeffArray[i5] << "c^5 + " << coeffArray[i4] << "c^4 + " << cubicSum << "= HIT!\n";
 }
 
 // will calculate ax^5 + bx^4 + cx^3 + dx^2 + ex + f - zeta(5) and return x if
@@ -57,10 +66,16 @@ std::vector<T>* testForZeta5OnGPU(T cons, T cubicSum, const T *coeffArray, int q
 	const T z5 = 1.036927755143369926331365486457034168L; //riemann_zetal((long double)5);
 	T currentQuart;
 	T quarticSum;
-	T consFifth = pow(cons, (T)5);
+	T consFourth = pow(cons, (T)4);
+	T consFifth = consFourth * T;
 
 	T *d_coeffArray, *d_out;
 	T *out = new T[quintLastIndex];
+
+	// initialize output array
+	for (int o = 0; o < quintLastIndex; o++) {
+		out[o] = 0;
+	}
 
 	// Allocate device memory 
     cudaMalloc((void**)&d_coeffArray, sizeof(T) * quintLastIndex);
@@ -78,26 +93,26 @@ std::vector<T>* testForZeta5OnGPU(T cons, T cubicSum, const T *coeffArray, int q
 	cout << grid_size << "\n";
 
 	// loop through quarts
-	for (int i = 6; i <= 7; i++) { // TODO: Set limit back to quartIndex!
+	for (int i = 6; i <= quartLastIndex; i++) {
 		currentQuart = coeffArray[i];
 
-		quarticSum = cubicSum + currentQuart * pow(cons, (T)4);
+		quarticSum = cubicSum + currentQuart * consFourth;
 
 		// now we want gpu to calculate ax^5 + quarticSum - zeta(5) and return if close enough to zero
 		// or ax^5 + quarticSum == zeta(5) => zeta(5) - quarticSum is close enough to ax^5
 		// in other words, figure out what blah - zeta(5) and cons^5 and send those to GPU along with coeff array
 		
 		// Executing kernel
-		compareToZeta5<<<grid_size,block_size>>>(d_out, consFifth, (z5 - quarticSum), coeffArray, quintLastIndex);
+		compareToZeta5<<<grid_size,block_size>>>(d_out, consFifth, (z5 - quarticSum), d_coeffArray, quintLastIndex);
 
 		// // Transfer data back to host memory
 		cudaMemcpy(out, d_out, sizeof(T) * quintLastIndex, cudaMemcpyDeviceToHost);
-		cout << "ferret\n";
+		//cout << "ferret\n";
 		// //cudaDeviceSynchronize();
 
 		for (int j = 0; j < quintLastIndex; j++) {
-			if (out[j] < .0000001 && out[j] > .0000001) {
-				cout << "i=" << i << ", out[" << j << "] = " << out[j] << "\n";
+			if (out[j] != 0) {
+				printHit(j, i, cubicSum, coeffArray);
 			}
 		}
 
