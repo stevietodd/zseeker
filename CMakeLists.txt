@@ -61,3 +61,7 @@ gtest_discover_tests(SomeTest)
 # set_target_properties(tests PROPERTIES COMPILE_FLAGS "${cxx_strict}")
 # target_link_libraries(tests gtest gtest_main zseeker)
 
+add_executable(
+  PrintPrecisions
+  PrintPrecisions.cpp
+)
