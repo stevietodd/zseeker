@@ -10,5 +10,7 @@ COPY . .
 
 WORKDIR /app/build
 
-# RUN cmake -DCMAKE_BUILD_TYPE=Release .. && \
-#     cmake --build . --parallel 8
+RUN cmake -DCMAKE_BUILD_TYPE=Release .. && \
+    cmake --build . --parallel 8
+
+CMD ["./zseeker"]

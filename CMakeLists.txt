@@ -19,11 +19,13 @@ FetchContent_MakeAvailable(googletest)
 # of this craziness. See https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html
 include(FindCUDA/select_compute_arch)
 CUDA_DETECT_INSTALLED_GPUS(INSTALLED_GPU_CCS_1)
+message(INSTALLED_GPU_CCS_1="${INSTALLED_GPU_CCS_1}") # only added this line to see what it is, can remove
 string(STRIP "${INSTALLED_GPU_CCS_1}" INSTALLED_GPU_CCS_2)
 string(REPLACE " " ";" INSTALLED_GPU_CCS_3 "${INSTALLED_GPU_CCS_2}")
 string(REPLACE "." "" CUDA_ARCH_LIST "${INSTALLED_GPU_CCS_3}")
+message(CUDA_ARCH_LIST="${CUDA_ARCH_LIST}") # only added this line to see what it is, can remove
 SET(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_LIST})
-
+SET(CMAKE_CUDA_ARCHITECTURES 75) # hard-coding this to my local GPU arch so I can build my docker images for it, can remove later maybe?
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000 -O3")
 add_executable(
