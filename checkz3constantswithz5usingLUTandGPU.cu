@@ -47,7 +47,8 @@ bool InitCUDA(bool b) {
     /* CUDA Initialization */
 }
 
-void printHit(int i5, int i4, const float cubicSum, const float *coeffArray)
+template<typename T>
+void printHit(int i5, int i4, const T cubicSum, const T *coeffArray)
 {
 	cout << "(" << i5 << "," << i4 << ",?,?,?,?): " <<
 		coeffArray[i5] << "c^5 + " << coeffArray[i4] << "c^4 + " << cubicSum << "= HIT!\n";
@@ -67,7 +68,7 @@ std::vector<T>* testForZeta5OnGPU(T cons, T cubicSum, const T *coeffArray, int q
 	T currentQuart;
 	T quarticSum;
 	T consFourth = pow(cons, (T)4);
-	T consFifth = consFourth * T;
+	T consFifth = consFourth * cons;
 
 	T *d_coeffArray, *d_out;
 	T *out = new T[quintLastIndex];
