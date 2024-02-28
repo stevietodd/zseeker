@@ -38,16 +38,16 @@ add_executable(
 enable_testing()
 
 add_executable(
-  SomeTest
-  test/SomeTest.cpp
+  PrecisionTest
+  test/PrecisionTest.cpp
 )
 target_link_libraries(
-  SomeTest
+  PrecisionTest
   GTest::gtest_main
 )
 
 include(GoogleTest)
-gtest_discover_tests(SomeTest)
+gtest_discover_tests(PrecisionTest)
 # set_property(TARGET zseeker PROPERTY ENABLE_EXPORTS 1)
 # add_subdirectory(lib/googletest)
 # target_compile_definitions(gtest
