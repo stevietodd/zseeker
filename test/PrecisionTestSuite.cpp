@@ -2,7 +2,7 @@
 #include <limits>
 using namespace std;
 
-TEST(PrecisionSuite, IntTest) {
+TEST(PrecisionTestSuite, IntTest) {
 	typedef numeric_limits<int> limint;
 
    ASSERT_EQ(sizeof(int), 4) << "Size in bytes was unexpected: int";
@@ -11,7 +11,7 @@ TEST(PrecisionSuite, IntTest) {
    ASSERT_EQ(limint::max_digits10, 0) << "MaxDigits10 limit was unexpected: int";
 }
 
-TEST(PrecisionSuite, FloatTest) {
+TEST(PrecisionTestSuite, FloatTest) {
 	typedef numeric_limits<float> limfloat;
 
    ASSERT_EQ(sizeof(float), 4) << "Size in bytes was unexpected: float";
@@ -20,7 +20,7 @@ TEST(PrecisionSuite, FloatTest) {
    ASSERT_EQ(limfloat::max_digits10, 9) << "MaxDigits10 limit was unexpected: float";
 }
 
-TEST(PrecisionSuite, DoubleTest) {
+TEST(PrecisionTestSuite, DoubleTest) {
 	typedef numeric_limits<double> limdouble;
 
    ASSERT_EQ(sizeof(double), 8) << "Size in bytes was unexpected: double";
