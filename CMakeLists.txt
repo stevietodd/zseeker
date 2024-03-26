@@ -38,30 +38,26 @@ add_executable(
 enable_testing()
 
 add_executable(
-  SomeTest
-  test/SomeTest.cpp
+  PrecisionTestSuite
+  test/PrecisionTestSuite.cpp
 )
 target_link_libraries(
-  SomeTest
+  PrecisionTestSuite
+  GTest::gtest_main
+)
+
+add_executable(
+  ArithmeticTestSuite
+  test/ArithmeticTestSuite.cpp
+)
+target_link_libraries(
+  ArithmeticTestSuite
   GTest::gtest_main
 )
 
 include(GoogleTest)
-gtest_discover_tests(SomeTest)
-# set_property(TARGET zseeker PROPERTY ENABLE_EXPORTS 1)
-# add_subdirectory(lib/googletest)
-# target_compile_definitions(gtest
-#   PUBLIC
-#     GTEST_LANG_CXX20
-#     GTEST_HAS_TR1_TUPLE=0
-# )
-# add_executable(tests)
-# target_sources(tests
-#   PRIVATE
-#     test/SomeTest.cpp
-# )
-# set_target_properties(tests PROPERTIES COMPILE_FLAGS "${cxx_strict}")
-# target_link_libraries(tests gtest gtest_main zseeker)
+gtest_discover_tests(PrecisionTestSuite)
+gtest_discover_tests(ArithmeticTestSuite)
 
 add_executable(
   PrintPrecisions
