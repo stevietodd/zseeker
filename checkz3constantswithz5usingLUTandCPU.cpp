@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
 					cout << "w=" << w << ", " << getCurrentTimeString();
 					if (useGPU) {
 						output = testForZeta5OnGPU(lnpi, v3, LUTptr, 304468, 1216772);  // took 12-13 minutes per w-loop but supposedly isn't getting right results
+						// return 0;  // Uncomment me and comment out above to compile on baremetal M1
 					} else {
 						for (int v = 6; v <= 304468; v++) { // LUT[4]   // took 46-48 minutes per w-loop but gets results
 							v4 = v3 + LUT[v] * lnpi4;
