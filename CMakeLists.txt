@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.14)
-project(zseeker LANGUAGES CUDA CXX)
+project(zseeker LANGUAGES CXX) # need this so CMAKE_CXX_COMPILER_ID var will be populated apparently
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+message(CMAKE_CXX_COMPILER_ID="${CMAKE_CXX_COMPILER_ID}") # only added this line to see what it is, can remove
+
 
 include(FetchContent)
 FetchContent_Declare(
@@ -14,26 +16,39 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-# I need the section below to avoid getting an error for empty CUDA_ARCHITECTURES
-# TODO: Eventually on CMake 3.23 I can just use 'all' or in 3.24 'native' instead
-# of this craziness. See https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html
-include(FindCUDA/select_compute_arch)
-CUDA_DETECT_INSTALLED_GPUS(INSTALLED_GPU_CCS_1)
-message(INSTALLED_GPU_CCS_1="${INSTALLED_GPU_CCS_1}") # only added this line to see what it is, can remove
-string(STRIP "${INSTALLED_GPU_CCS_1}" INSTALLED_GPU_CCS_2)
-string(REPLACE " " ";" INSTALLED_GPU_CCS_3 "${INSTALLED_GPU_CCS_2}")
-string(REPLACE "." "" CUDA_ARCH_LIST "${INSTALLED_GPU_CCS_3}")
-message(CUDA_ARCH_LIST="${CUDA_ARCH_LIST}") # only added this line to see what it is, can remove
-SET(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_LIST})
-SET(CMAKE_CUDA_ARCHITECTURES 75) # hard-coding this to my local GPU arch so I can build my docker images for it, can remove later maybe?
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  project(zseeker LANGUAGES CUDA CXX)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000 -O3")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000 -O3")
+  # I need the section below to avoid getting an error for empty CUDA_ARCHITECTURES
+  # TODO: Eventually on CMake 3.23 I can just use 'all' or in 3.24 'native' instead
+  # of this craziness. See https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html
+  include(FindCUDA/select_compute_arch)
+  CUDA_DETECT_INSTALLED_GPUS(INSTALLED_GPU_CCS_1)
+  message(INSTALLED_GPU_CCS_1="${INSTALLED_GPU_CCS_1}") # only added this line to see what it is, can remove
+  string(STRIP "${INSTALLED_GPU_CCS_1}" INSTALLED_GPU_CCS_2)
+  string(REPLACE " " ";" INSTALLED_GPU_CCS_3 "${INSTALLED_GPU_CCS_2}")
+  string(REPLACE "." "" CUDA_ARCH_LIST "${INSTALLED_GPU_CCS_3}")
+  message(CUDA_ARCH_LIST="${CUDA_ARCH_LIST}") # only added this line to see what it is, can remove
+  SET(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_LIST})
+  SET(CMAKE_CUDA_ARCHITECTURES 75) # hard-coding this to my local GPU arch so I can build my docker images for it, can remove later maybe?
+
 add_executable(
 	zseeker
 	checkz3constantswithz5usingLUTandCPU.cpp
 	cudawrapper.hpp
 	checkz3constantswithz5usingLUTandGPU.cu
 )
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-steps=1000000000 -O3")
+
+  add_executable(
+    zseeker
+    checkz3constantswithz5usingLUTandCPU.cpp
+    cudawrapper.hpp
+    #checkz3constantswithz5usingLUTandGPU.cu
+  )
+endif()
 
 enable_testing()
 
