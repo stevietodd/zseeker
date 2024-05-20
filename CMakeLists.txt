@@ -70,7 +70,17 @@ target_link_libraries(
   GTest::gtest_main
 )
 
+add_executable(
+  LookupTableTestSuite
+  test/LookupTableTestSuite.cpp
+)
+target_link_libraries(
+  LookupTableTestSuite
+  GTest::gtest_main
+)
+
 include(GoogleTest)
+gtest_discover_tests(LookupTableTestSuite)
 gtest_discover_tests(PrecisionTestSuite)
 gtest_discover_tests(ArithmeticTestSuite)
 
