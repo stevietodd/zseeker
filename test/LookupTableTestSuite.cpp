@@ -28,14 +28,29 @@ TEST(LookupTableTestSuite, LookupTableRandomValuesTest) {
 	ASSERT_EQ(-2, LUT[12]);
 
 	// assert values for [1,3] are correct
-	ASSERT_EQ(0.33, LUT[13]);
-	ASSERT_EQ(-0.33, LUT[14]);
+	ASSERT_EQ(0.33333333, LUT[13]);
+	ASSERT_EQ(-0.33333333, LUT[14]);
 	ASSERT_EQ(3, LUT[15]);
 	ASSERT_EQ(-3, LUT[16]);
-	ASSERT_EQ(0.66, LUT[17]);
-	ASSERT_EQ(-0.66, LUT[18]);
+	ASSERT_EQ(0.66666666, LUT[17]);
+	ASSERT_EQ(-0.66666666, LUT[18]);
 	ASSERT_EQ(1.5, LUT[19]);
 	ASSERT_EQ(-1.5, LUT[20]);
 
-	// assert some random values are as expected
+	// assert values for [1,4] are correct (should have omitted values like 2/4 that already exist)
+	ASSERT_EQ(0.25, LUT[21]);
+	ASSERT_EQ(-0.25, LUT[22]);
+	ASSERT_EQ(4, LUT[23]);
+	ASSERT_EQ(-4, LUT[24]);
+	ASSERT_EQ(0.75, LUT[25]);
+	ASSERT_EQ(-0.75, LUT[26]);
+	ASSERT_EQ(1.3333333, LUT[27]);
+	ASSERT_EQ(-1.3333333, LUT[28]);
+
+	// assert some totally random values are correct (looked these up manually)
+	ASSERT_EQ(0, LUT[1'000]);
+	ASSERT_EQ(0, LUT[10'000]);
+	ASSERT_EQ(0, LUT[100'000]);
+	ASSERT_EQ(0, LUT[1'000'000]);
+	ASSERT_EQ(0, LUT[1'216'772]);
 }
