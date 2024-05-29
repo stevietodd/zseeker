@@ -4,5 +4,5 @@ class CpuPolynomialChecker : public PolynomialCheckerInterface
 {
     CpuPolynomialChecker(){}
     ~CpuPolynomialChecker(){}
-    void findHits();
-}
+    std::vector<float> findHits();
+};
