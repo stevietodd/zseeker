@@ -47,10 +47,15 @@ TEST(LookupTableTestSuite, LookupTableRandomValuesTest) {
 	EXPECT_FLOAT_EQ(1.3333333, LUT[27]);
 	EXPECT_FLOAT_EQ(-1.3333333, LUT[28]);
 
+	// assert a few pairs are positive/negative (this property isn't important but in the current design
+	// should always be true)
+	EXPECT_FLOAT_EQ(LUT[99], -LUT[100]);
+	EXPECT_FLOAT_EQ(LUT[221], -LUT[222]);
+
 	// assert some totally random values are correct (looked these up manually)
-	EXPECT_FLOAT_EQ(0, LUT[1'000]);
-	EXPECT_FLOAT_EQ(0, LUT[10'000]);
-	EXPECT_FLOAT_EQ(0, LUT[100'000]);
-	EXPECT_FLOAT_EQ(0, LUT[1'000'000]);
-	EXPECT_FLOAT_EQ(0, LUT[1'216'772]);
+	EXPECT_FLOAT_EQ(-4.1428571, LUT[1'000]);
+	EXPECT_FLOAT_EQ(0.26373628, LUT[10'001]);
+	EXPECT_FLOAT_EQ(-2.9895833, LUT[100'000]);
+	EXPECT_FLOAT_EQ(0.51819181, LUT[1'000'001]);
+	EXPECT_FLOAT_EQ(-1.001001, LUT[1'216'772]);
 }
