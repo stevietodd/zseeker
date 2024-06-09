@@ -6,9 +6,9 @@
 class PolynomialCheckerInterface
 {
     public:
-        PolynomialCheckerInterface();
-        virtual ~PolynomialCheckerInterface();
-        virtual std::vector<float> findHits() = 0;
+        PolynomialCheckerInterface(){}
+        virtual ~PolynomialCheckerInterface(){}
+        virtual std::vector<float>* findHits() = 0;
 };
 
 #endif // POLYNOMIAL_CHECKER_INTERFACE_HPP

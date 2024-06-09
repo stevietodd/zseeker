@@ -3,8 +3,6 @@ project(zseeker LANGUAGES CXX) # need this so CMAKE_CXX_COMPILER_ID var will be 
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(CMAKE_CXX_COMPILER_ID="${CMAKE_CXX_COMPILER_ID}") # only added this line to see what it is, can remove
-
 
 include(FetchContent)
 FetchContent_Declare(
@@ -87,4 +85,14 @@ gtest_discover_tests(ArithmeticTestSuite)
 add_executable(
   PrintPrecisions
   PrintPrecisions.cpp
+)
+
+add_executable(
+  zseeker2
+  main.cpp
+  PolynomialCheckerInterface.hpp
+  CpuPolynomialChecker.hpp
+  CpuPolynomialChecker.cpp
+  GpuPolynomialChecker.hpp
+  GpuPolynomialChecker.cpp
 )
