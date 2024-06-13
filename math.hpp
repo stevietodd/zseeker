@@ -1,6 +1,8 @@
 #ifndef MATH_HPP
 #define MATH_HPP
 
+#include <cmath>
+
 #define DOUBLE_POS_ERROR .00000001 // approximate precision in digits = EIGHT
 #define DOUBLE_NEG_ERROR -DOUBLE_POS_ERROR
 #define DOUBLE_BASICALLY_EQUAL(d1,d2) ((d1 - d2) >= DOUBLE_NEG_ERROR && (d1 - d2) <= DOUBLE_POS_ERROR)

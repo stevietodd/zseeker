@@ -94,5 +94,5 @@ add_executable(
   CpuPolynomialChecker.hpp
   CpuPolynomialChecker.cpp
   GpuPolynomialChecker.hpp
-  GpuPolynomialChecker.cpp
+  GpuPolynomialChecker.cu
 )
