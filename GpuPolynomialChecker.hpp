@@ -8,7 +8,7 @@ class GpuPolynomialChecker : public PolynomialCheckerInterface
     public:
         GpuPolynomialChecker(){}
         ~GpuPolynomialChecker(){}
-        std::vector<float>* findHits(const float theConst, const float needle, std::vector<float> *coeffArray);
+        std::vector<float>* findHits(const float theConst, const float needle, const std::vector<float> *coeffArray);
 };
 
 #endif // GPU_POLYNOMIAL_CHECKER_HPP

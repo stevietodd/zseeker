@@ -8,7 +8,7 @@ class CpuPolynomialChecker : public PolynomialCheckerInterface
     public:
         CpuPolynomialChecker(){}
         ~CpuPolynomialChecker(){}
-        std::vector<float>* findHits(const float theConst, const float needle, std::vector<float> *coeffArray);
+        std::vector<float>* findHits(const float theConst, const float needle, const std::vector<float> *coeffArray);
 };
 
 #endif // CPU_POLYNOMIAL_CHECKER_HPP
