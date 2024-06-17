@@ -8,7 +8,7 @@ class PolynomialCheckerInterface
     public:
         PolynomialCheckerInterface(){}
         virtual ~PolynomialCheckerInterface(){}
-        virtual std::vector<float>* findHits(const float theConst, const float needle, const std::vector<float> *coeffArray) = 0;
+        virtual std::vector<float*>* findHits(const float theConst, const float needle, const std::vector<float> *coeffArray) = 0;
 };
 
 #endif // POLYNOMIAL_CHECKER_INTERFACE_HPP

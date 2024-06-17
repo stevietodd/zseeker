@@ -6,7 +6,7 @@
 int main(int argc, char *argv[])
 {
     PolynomialCheckerInterface *checker;
-    std::vector<float> *hits;
+    std::vector<float*> *hits;
 
     switch (argc) {
 		case 2:
@@ -22,8 +22,11 @@ int main(int argc, char *argv[])
         }
 	}
 
-    hits = checker->findHits(M_PI, ZETA4, NULL);
-    std::cout << "Result=" << hits->at(0) << std::endl;
-    
+    hits = checker->findHits(M_PI, ZETA5, NULL);
+    std::cout << "Count=" << hits->size() << std::endl;
+    float *result = hits->at(0);
+    std::cout << "Vals=" << result[0] << "," << result[1] << "," << result[2] << "," << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
+    result = hits->at(27);
+    std::cout << "Vals=" << result[0] << "," << result[1] << "," << result[2] << "," << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
     return 0;
 }

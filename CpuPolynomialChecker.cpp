@@ -3,16 +3,16 @@
 #include "math.hpp"
 
 // Provide implementation for the first method
-std::vector<float>* CpuPolynomialChecker::findHits(const float theConst, const float needle, const std::vector<float> *coeffArray)
+std::vector<float*>* CpuPolynomialChecker::findHits(const float theConst, const float needle, const std::vector<float> *coeffArray)
 {
     const float theConst2 = powl(theConst, (float)2);
 	const float theConst3 = powl(theConst, (float)3);
 	const float theConst4 = powl(theConst, (float)4);
 	const float theConst5 = powl(theConst, (float)5);
 
-    float v0, v1, v2, v3, v4, v5;
+    float v0, v1, v2, v3, v4, v5, *hit;
 
-    std::vector<float> *hits = new std::vector<float>();
+    std::vector<float*> *hits = new std::vector<float*>();
 
     // TODO: stop hard-coding these values
     for (int z = 6; z <= 292; z++) { // LUT[0]
@@ -32,9 +32,10 @@ std::vector<float>* CpuPolynomialChecker::findHits(const float theConst, const f
 
                         for (int u = 6; u <= 1216772; u++) { // LUT[5]
                             v5 = v4 + LUT[u] * theConst5;
+
                             if (FLOAT_BASICALLY_EQUAL(v5, ZETA5)) {
-                                //TODO: MASSIVE rewrite needed...hits should be array of coeffs, not one single float
-                                hits->push_back(theConst);
+                                hit = new float[6] {LUT[u], LUT[v], LUT[w], LUT[x], LUT[y], LUT[z]};
+                                hits->push_back(hit);
                             }
                         }
                     }
