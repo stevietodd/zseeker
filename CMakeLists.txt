@@ -77,6 +77,16 @@ target_link_libraries(
   GTest::gtest_main
 )
 
+add_executable(
+  CpuPolynomialCheckerTestSuite
+  test/CpuPolynomialCheckerTestSuite.cpp
+  CpuPolynomialChecker.cpp
+)
+target_link_libraries(
+  CpuPolynomialCheckerTestSuite
+  GTest::gtest_main
+)
+
 include(GoogleTest)
 gtest_discover_tests(LookupTableTestSuite)
 gtest_discover_tests(PrecisionTestSuite)
