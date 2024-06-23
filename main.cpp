@@ -28,5 +28,9 @@ int main(int argc, char *argv[])
     std::cout << "Vals=" << result[0] << "," << result[1] << "," << result[2] << "," << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
     // result = hits->at(27);
     // std::cout << "Vals=" << result[0] << "," << result[1] << "," << result[2] << "," << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
+    
+    // clean up
+    checker->~PolynomialCheckerInterface();
+
     return 0;
 }

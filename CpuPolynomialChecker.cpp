@@ -31,14 +31,7 @@ std::vector<float*>* CpuPolynomialChecker::findHits(
             if (loopRanges->at(loopRangeInd) >= 0) {
                 // they are setting a non-default value, so update loopStartEnds
                 loopStartEnds[loopRangeInd] = loopRanges->at(loopRangeInd);
-
-                // if this was an odd index (so a Start) then allow them to change the End if they want
-                if (loopRanges->at(loopRangeInd+1) >= 0) {
-                    loopStartEnds[loopRangeInd+1] = loopRanges->at(loopRangeInd+1);
-                }
-
-                //now that they've set anything, break out and ignore everything else
-                break;
+                std::cout << "WARNING: You have set a non-standard loop range. Your search may be incomplete" << std::endl;
             }
         }
     }
