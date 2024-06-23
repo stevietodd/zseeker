@@ -22,11 +22,11 @@ int main(int argc, char *argv[])
         }
 	}
 
-    hits = checker->findHits(M_PI, ZETA5, NULL);
+    hits = checker->findHits(ZETA5, M_PI, 5, NULL, NULL);
     std::cout << "Count=" << hits->size() << std::endl;
     float *result = hits->at(0);
     std::cout << "Vals=" << result[0] << "," << result[1] << "," << result[2] << "," << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
-    result = hits->at(27);
-    std::cout << "Vals=" << result[0] << "," << result[1] << "," << result[2] << "," << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
+    // result = hits->at(27);
+    // std::cout << "Vals=" << result[0] << "," << result[1] << "," << result[2] << "," << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
     return 0;
 }

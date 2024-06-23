@@ -1,7 +1,12 @@
 #include "GpuPolynomialChecker.hpp"
 
-// Provide implementation for the first method
-std::vector<float*>* GpuPolynomialChecker::findHits(const float theConst, const float needle, const std::vector<float> *coeffArray)
+std::vector<float*>* GpuPolynomialChecker::findHits(
+            const float needle,
+            const float theConst,
+            const int degree,
+            const std::vector<float> *coeffArray,
+            const std::vector<int> *loopRanges
+)
 {
     // Your implementation
     std::vector<float*> *dog = new std::vector<float*>();

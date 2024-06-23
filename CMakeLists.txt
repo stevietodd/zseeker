@@ -91,6 +91,7 @@ include(GoogleTest)
 gtest_discover_tests(LookupTableTestSuite)
 gtest_discover_tests(PrecisionTestSuite)
 gtest_discover_tests(ArithmeticTestSuite)
+gtest_discover_tests(CpuPolynomialCheckerTestSuite)
 
 add_executable(
   PrintPrecisions
