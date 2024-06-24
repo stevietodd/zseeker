@@ -13,10 +13,12 @@ std::vector<float*>* CpuPolynomialChecker::findHits(
             const float needle,
             const float theConst,
             const int degree,
-            const std::vector<float> *coeffArray,
+            const float *coeffArray,
             const std::vector<int> *loopRanges
 )
 {
+    // TODO! Use coeffArray instead of LUT directly!!
+
     // TODO: This sucks. Change this
     // note that even elements are LUT[0] through LUT[5]
     int loopStartEnds[12] = {6, 292, 6, 1'116, 6, 4'412, 6, 12'180, 6, 304'468, 6, 1'216'772};

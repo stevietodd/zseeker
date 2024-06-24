@@ -8,12 +8,12 @@ class CpuPolynomialChecker : public PolynomialCheckerInterface
     public:
         CpuPolynomialChecker(){}
         ~CpuPolynomialChecker(){}
-        
+
         virtual std::vector<float*>* findHits(
             const float needle,
             const float theConst,
             const int degree,
-            const std::vector<float> *coeffArray,
+            const float *coeffArray,
             const std::vector<int> *loopRanges
         );
 };

@@ -15,7 +15,7 @@ class PolynomialCheckerInterface
             const float needle,
             const float theConst,
             const int degree,
-            const std::vector<float> *coeffArray,
+            const float *coeffArray,
             const std::vector<int> *loopRanges
         ) = 0;
 };
