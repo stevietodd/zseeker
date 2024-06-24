@@ -3,8 +3,6 @@ project(zseeker LANGUAGES CXX) # need this so CMAKE_CXX_COMPILER_ID var will be 
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(CMAKE_CXX_COMPILER_ID="${CMAKE_CXX_COMPILER_ID}") # only added this line to see what it is, can remove
-
 
 include(FetchContent)
 FetchContent_Declare(
@@ -70,11 +68,53 @@ target_link_libraries(
   GTest::gtest_main
 )
 
+add_executable(
+  LookupTableTestSuite
+  test/LookupTableTestSuite.cpp
+)
+target_link_libraries(
+  LookupTableTestSuite
+  GTest::gtest_main
+)
+
+add_executable(
+  CpuPolynomialCheckerTestSuite
+  test/CpuPolynomialCheckerTestSuite.cpp
+  CpuPolynomialChecker.cpp
+)
+target_link_libraries(
+  CpuPolynomialCheckerTestSuite
+  GTest::gtest_main
+)
+
+add_executable(
+  GpuPolynomialCheckerTestSuite
+  test/GpuPolynomialCheckerTestSuite.cpp
+  GpuPolynomialChecker.cu
+)
+target_link_libraries(
+  GpuPolynomialCheckerTestSuite
+  GTest::gtest_main
+)
+
 include(GoogleTest)
+gtest_discover_tests(LookupTableTestSuite)
 gtest_discover_tests(PrecisionTestSuite)
 gtest_discover_tests(ArithmeticTestSuite)
+gtest_discover_tests(CpuPolynomialCheckerTestSuite)
+gtest_discover_tests(GpuPolynomialCheckerTestSuite)
 
 add_executable(
   PrintPrecisions
   PrintPrecisions.cpp
+)
+
+add_executable(
+  zseeker2
+  main.cpp
+  PolynomialCheckerInterface.hpp
+  CpuPolynomialChecker.hpp
+  CpuPolynomialChecker.cpp
+  GpuPolynomialChecker.hpp
+  GpuPolynomialChecker.cu
 )
