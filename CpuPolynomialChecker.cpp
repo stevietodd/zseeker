@@ -25,7 +25,8 @@ std::vector<float*>* CpuPolynomialChecker::findHits(
 
     //TODO: Use degree for way more things than just processing loopRanges
     // if loopRanges is non-null, find first level with positive values (-1 indicates use default) and use those
-    // note that we ignore any level after that since we don't want to skip coeffs in later loops
+    // (WRONG) note that we ignore any level after that since we don't want to skip coeffs in later loops (WRONG)
+    // note that we DO allow all levels to be updated now but warn the user that they may have an incomplete search
     if (loopRanges != NULL) {
         // loopRanges must have (2*(degree+1)) elements. Format is [zStart, zEnd, yStart, yEnd, ...]
         for (int loopRangeInd = 0; loopRangeInd < (2*(degree+1)); loopRangeInd++) {
