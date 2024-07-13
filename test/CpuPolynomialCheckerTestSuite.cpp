@@ -20,6 +20,7 @@ TEST(CpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {
 
     hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges);
 
+// this does get the right hit when v-loop is on v=9829 which corresponds to 1/90. v5 ends up being 1.08232343 while z4 = 1.082323223
 	ASSERT_EQ(28, hits->size());
     //EXPECT_EQ(0, hits->at(27)); TODO Check some actual results
 }

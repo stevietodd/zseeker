@@ -68,7 +68,7 @@ std::vector<float*>* CpuPolynomialChecker::findHits(
                         for (int u = loopStartEnds[10]; u <= loopStartEnds[11]; u++) {
                             v5 = v4 + LUT[u] * theConst5;
 
-                            if (FLOAT_BASICALLY_EQUAL(v5, ZETA5)) {
+                            if (FLOAT_BASICALLY_EQUAL(v5, needle)) {
                                 hit = new float[6] {LUT[u], LUT[v], LUT[w], LUT[x], LUT[y], LUT[z]};
                                 hits->push_back(hit);
                             }
