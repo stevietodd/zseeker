@@ -1,25 +1,5 @@
 #include "GpuPolynomialChecker.hpp"
 
-// #include <iostream>
-// #include <sstream>
-// #include <cmath>
-// #include <ctime>
-// #include <numeric>
-// #include <limits>
-// using namespace std;
-
-// char* getCurrentTimeString() {
-// 	std::time_t currTime = std::time(nullptr);
-// 	return std::asctime(std::localtime(&currTime));
-// }
-
-// #include <array>
-// using ResultT = float;
-// constexpr ResultT f(int i, int j)
-// {
-//     return ((float)i / j);
-// }
-
 // cuda.cu
 #include "cudawrapper.hpp"
 #include <iostream>
@@ -70,6 +50,7 @@ std::vector<float*>* testForZeta5OnGPU(float cons, float cubicSum, const float *
 	float quarticSum;
 	float consFourth = pow(cons, (float)4);
 	float consFifth = consFourth * cons;
+	std::vector<float*> *results = new std::vector<float*>();
 
 	float *d_coeffArray, *d_out;
 	float *out = new float[quintLastIndex];
@@ -115,6 +96,7 @@ std::vector<float*>* testForZeta5OnGPU(float cons, float cubicSum, const float *
 		for (int j = 0; j < quintLastIndex; j++) {
 			if (out[j] != 0) {
 				printHit(j, i, cubicSum, coeffArray);
+				results->push_back(new float[2] {coeffArray[i], coeffArray[j]});
 			}
 		}
 
@@ -131,6 +113,8 @@ std::vector<float*>* testForZeta5OnGPU(float cons, float cubicSum, const float *
 	cout << "lizard\n";
 
 	delete out;
+
+	return results;
 }
 
 std::vector<float*>* GpuPolynomialChecker::findHits(
@@ -181,7 +165,7 @@ std::vector<float*>* GpuPolynomialChecker::findHits(
 
 				for (int w = loopStartEnds[6]; w <= loopStartEnds[7]; w++) {
 					v3 = v2 + coeffArray[w] * theConst3;
-                        hits = testForZeta5OnGPU(theConst, v3, coeffArray, 304468, 1216772);
+                        hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[9], loopStartEnds[11]);
                 }
             }
         }
