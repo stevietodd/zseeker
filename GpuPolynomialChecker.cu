@@ -7,9 +7,10 @@ using namespace std;
 
 // calculates val * [vector elems] and returns if close enough to needle
 template<typename T>
-__global__ static void compareToZeta5(T *out, const T val, const T needle, const T *coeffArray, int n) {
+__global__ static void compareToZeta5(T *out, const T val, const T needle, const T *coeffArray, int n, int *hitCount) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     T expr;
+	int i;
 	//printf("Hello from block %d, thread %d => tid %d. n=%d\n", blockIdx.x, threadIdx.x, tid, n);
 
     // Handling arbitrary vector size
@@ -18,11 +19,10 @@ __global__ static void compareToZeta5(T *out, const T val, const T needle, const
 		expr = (val * coeffArray[tid]) - needle;
 		if (expr < .0000001 && expr > -.0000001) {
 			printf("Hello from block %d, thread %d\n", blockIdx.x, threadIdx.x);
-			out[tid] = coeffArray[tid]; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]
-		} else {
-			out[tid] = 0;
+			i = atomicAdd(hitCount, 1);
+			out[i] = coeffArray[tid]; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]
 		}
-    }
+	}
 }
 
 bool InitCUDA(bool b) {
@@ -55,6 +55,10 @@ std::vector<float*>* testForZeta5OnGPU(float cons, float cubicSum, const float *
 	float *d_coeffArray, *d_out;
 	float *out = new float[quintLastIndex];
 
+	int *hitCount;
+	cudaMallocHost(&hitCount, sizeof(int));
+    memset(hitCount, 0, sizeof(int));
+
 	// initialize output array
 	for (int o = 0; o < quintLastIndex; o++) {
 		out[o] = 0;
@@ -86,23 +90,24 @@ std::vector<float*>* testForZeta5OnGPU(float cons, float cubicSum, const float *
 		// in other words, figure out what blah - zeta(5) and cons^5 and send those to GPU along with coeff array
 		
 		// Executing kernel
-		compareToZeta5<<<grid_size,block_size>>>(d_out, consFifth, (z5 - quarticSum), d_coeffArray, quintLastIndex);
-
-		// // Transfer data back to host memory
-		cudaMemcpy(out, d_out, sizeof(float) * quintLastIndex, cudaMemcpyDeviceToHost);
-		//cout << "ferret\n";
-		// //cudaDeviceSynchronize();
-
-		for (int j = 0; j < quintLastIndex; j++) {
-			if (out[j] != 0) {
-				printHit(j, i, cubicSum, coeffArray);
-				results->push_back(new float[2] {coeffArray[i], coeffArray[j]});
-			}
-		}
-
-		//cout << i << "\n";
+		compareToZeta5<<<grid_size,block_size>>>(d_out, consFifth, (z5 - quarticSum), d_coeffArray, quintLastIndex, hitCount);
 	}
 
+	cout << *hitCount << endl;
+
+	// Transfer data back to host memory
+	cudaMemcpy(out, d_out, sizeof(float) * quintLastIndex, cudaMemcpyDeviceToHost);
+	//cout << "ferret\n";
+	// //cudaDeviceSynchronize();
+
+	// for (int j = 0; j < quintLastIndex; j++) {
+	// 	if (out[j] != 0) {
+	// 		printHit(j, i, cubicSum, coeffArray);
+	// 		results->push_back(new float[2] {coeffArray[i], coeffArray[j]});
+	// 	}
+	// }
+
+	//cout << i << "\n";
     
 	// cout << "bird\n";
 
