@@ -24,6 +24,10 @@ std::vector<float*>* CpuPolynomialChecker::findHits(
             const std::vector<int> *loopRanges
 )
 {
+    // make sure to remove these if I eventually stop using cout
+    typedef std::numeric_limits< float > ldbl;
+	std::cout.precision(ldbl::max_digits10);
+
     // TODO! Use coeffArray instead of LUT directly!!
 
     // TODO: This sucks. Change this
@@ -51,7 +55,7 @@ std::vector<float*>* CpuPolynomialChecker::findHits(
 	const float theConst4 = powl(theConst, (float)4);
 	const float theConst5 = powl(theConst, (float)5);
 
-    float v0, v1, v2, v3, v4, v5, *hit;
+    float v0, v1, v2, v3, v4, *hit;
 
     std::vector<float*> *hits = new std::vector<float*>();
 
@@ -73,9 +77,11 @@ std::vector<float*>* CpuPolynomialChecker::findHits(
                         v4 = v3 + LUT[v] * theConst4;
 
                         for (int u = loopStartEnds[10]; u <= loopStartEnds[11]; u++) {
-                            v5 = v4 + LUT[u] * theConst5;
+                            // note that we don't use a v5 variable anymore and compare directly to (needle - v4) to
+                            // mimic how the Gpu checker does it
 
-                            if (FLOAT_BASICALLY_EQUAL(v5, needle)) {
+                            if (FLOAT_BASICALLY_EQUAL(LUT[u] * theConst5, (needle - v4))) {
+                                printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=%10.10lf,v4=%10.10lf,(needle-v4)=%10.10lf,diff=%10.10lf\n", LUT[u], theConst5, needle, v4, (needle-v4), ((LUT[u] * theConst5) - (needle-v4)));
                                 hit = new float[6] {LUT[u], LUT[v], LUT[w], LUT[x], LUT[y], LUT[z]};
                                 hits->push_back(hit);
                                 printHit(u,v,w,x,y,z);

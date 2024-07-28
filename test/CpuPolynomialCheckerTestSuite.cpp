@@ -9,8 +9,15 @@ TEST(CpuPolynomialCheckerTestSuite, VLoopResultsConfirmTest) {
 
     hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges);
 
-	ASSERT_EQ(28, hits->size());
-    //EXPECT_EQ(0, hits->at(27)); TODO Check some actual results
+	// manual analysis indicates there should be at least 19 hits within .000005 range...
+	ASSERT_LE(19, hits->size());
+
+    // ...but there should be closer to 26-28 depending on rounding. If there are too many hits something is wrong
+    EXPECT_GE(30, hits->size());
+
+    // now let's ensure some close hits (err <= .000003) were returned
+    EXPECT_THAT(hits, Contains("dog"));
+    //coeff = 191426;
 }
 
 TEST(CpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {

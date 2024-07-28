@@ -1,4 +1,5 @@
 #include "GpuPolynomialChecker.hpp"
+#include "math.hpp"
 
 // cuda.cu
 #include "cudawrapper.hpp"
@@ -10,15 +11,28 @@ template<typename T>
 __global__ static void compareToZeta5(T *out, const T val, const T needle, const T *coeffArray, int n, int *hitCount) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     T expr;
-	int i;
+	register int i;
 	//printf("Hello from block %d, thread %d => tid %d. n=%d\n", blockIdx.x, threadIdx.x, tid, n);
 
     // Handling arbitrary vector size
     if (tid < n){
 		//printf("coeff=%f\n", coeffArray[tid]);
-		expr = (val * coeffArray[tid]) - needle;
-		if (expr < .0000001 && expr > -.0000001) {
-			printf("Hello from block %d, thread %d\n", blockIdx.x, threadIdx.x);
+		if (needle > -71 && needle < -70 && tid == 636850) {
+			// special debug print
+			printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=?,v4=?,(needle-v4)=%10.10lf\n", coeffArray[tid], val, needle);
+			printf("***DIFF=%10.10lf***\n", (val * coeffArray[tid]) - needle);
+		}
+		if (FLOAT_BASICALLY_EQUAL(coeffArray[tid] * val, needle)) {
+			printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=?,v4=?,(needle-v4)=%10.10lf\n", coeffArray[tid], val, needle);
+			printf(
+				"Hit found in block %d, thread %d: %f + coeffArray[%d]*c^5 (%f) within %f\n",
+				blockIdx.x,
+				threadIdx.x,
+				(M_PI-needle),
+				tid,
+				coeffArray[tid],
+				expr
+			);
 			i = atomicAdd(hitCount, 1);
 			out[i] = coeffArray[tid]; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]
 		}
@@ -45,19 +59,24 @@ void printHit(int i5, int i4, const T cubicSum, const T *coeffArray)
 // quintLastIndex = last index to loop through for a values
 std::vector<float*>* testForZeta5OnGPU(float cons, float cubicSum, const float *coeffArray, int quartLastIndex, int quintLastIndex)
 {
+	//TODO: Pass in needle instead of hardcoded use of z5 here!
 	const float z5 = 1.036927755143369926331365486457034168L; //riemann_zetal((long double)5);
 	float currentQuart;
 	float quarticSum;
 	float consFourth = pow(cons, (float)4);
-	float consFifth = consFourth * cons;
+	float consFifth = pow(cons, (float)5);
 	std::vector<float*> *results = new std::vector<float*>();
 
 	float *d_coeffArray, *d_out;
 	float *out = new float[quintLastIndex];
 
-	int *hitCount;
-	cudaMallocHost(&hitCount, sizeof(int));
-    memset(hitCount, 0, sizeof(int));
+	typedef std::numeric_limits< float > ldbl;
+	cout.precision(ldbl::max_digits10);
+cout << cons << "," << consFourth << "," << consFifth << endl;
+	int h_hitCount = 0;
+	int *d_hitCount = 0;
+	cudaMalloc((void**) &d_hitCount, sizeof(int) );
+	cudaMemcpy(d_hitCount, &h_hitCount , sizeof(int), cudaMemcpyHostToDevice);
 
 	// initialize output array
 	for (int o = 0; o < quintLastIndex; o++) {
@@ -90,15 +109,16 @@ std::vector<float*>* testForZeta5OnGPU(float cons, float cubicSum, const float *
 		// in other words, figure out what blah - zeta(5) and cons^5 and send those to GPU along with coeff array
 		
 		// Executing kernel
-		compareToZeta5<<<grid_size,block_size>>>(d_out, consFifth, (z5 - quarticSum), d_coeffArray, quintLastIndex, hitCount);
+		compareToZeta5<<<grid_size,block_size>>>(d_out, consFifth, (z5 - quarticSum), d_coeffArray, quintLastIndex, d_hitCount);
 	}
 
-	cout << *hitCount << endl;
-
 	// Transfer data back to host memory
+	cudaMemcpy(&h_hitCount , d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
 	cudaMemcpy(out, d_out, sizeof(float) * quintLastIndex, cudaMemcpyDeviceToHost);
 	//cout << "ferret\n";
 	// //cudaDeviceSynchronize();
+
+	cout << h_hitCount << endl;
 
 	// for (int j = 0; j < quintLastIndex; j++) {
 	// 	if (out[j] != 0) {
@@ -114,6 +134,7 @@ std::vector<float*>* testForZeta5OnGPU(float cons, float cubicSum, const float *
     // Deallocate device memory
     cudaFree(d_coeffArray);
     cudaFree(d_out);
+	cudaFree(d_hitCount);
 
 	cout << "lizard\n";
 
