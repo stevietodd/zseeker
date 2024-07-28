@@ -34,7 +34,7 @@ __global__ static void compareToZeta5(T *out, const T val, const T needle, const
 				expr
 			);
 			i = atomicAdd(hitCount, 1);
-			out[i] = coeffArray[tid]; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]
+			out[i] = tid; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]
 		}
 	}
 }
@@ -57,7 +57,7 @@ void printHit(int i5, int i4, const T cubicSum, const T *coeffArray)
 // coeffArray = array of all possible a/b/c/d/e/f coeff values
 // quartLastIndex = last index to loop through for b values
 // quintLastIndex = last index to loop through for a values
-std::vector<float*>* testForZeta5OnGPU(float cons, float cubicSum, const float *coeffArray, int quartLastIndex, int quintLastIndex)
+std::vector<int*>* testForZeta5OnGPU(float cons, float cubicSum, const float *coeffArray, int quartLastIndex, int quintLastIndex)
 {
 	//TODO: Pass in needle instead of hardcoded use of z5 here!
 	const float z5 = 1.036927755143369926331365486457034168L; //riemann_zetal((long double)5);
@@ -65,10 +65,10 @@ std::vector<float*>* testForZeta5OnGPU(float cons, float cubicSum, const float *
 	float quarticSum;
 	float consFourth = pow(cons, (float)4);
 	float consFifth = pow(cons, (float)5);
-	std::vector<float*> *results = new std::vector<float*>();
+	std::vector<int*> *results = new std::vector<int*>();
 
 	float *d_coeffArray, *d_out;
-	float *out = new float[quintLastIndex];
+	int *out = new int[quintLastIndex];
 
 	typedef std::numeric_limits< float > ldbl;
 	cout.precision(ldbl::max_digits10);
@@ -85,7 +85,7 @@ cout << cons << "," << consFourth << "," << consFifth << endl;
 
 	// Allocate device memory 
     cudaMalloc((void**)&d_coeffArray, sizeof(float) * quintLastIndex);
-    cudaMalloc((void**)&d_out, sizeof(float) * quintLastIndex);		//TODO: Can probably make this 10% as large as quintLastIndex??
+    cudaMalloc((void**)&d_out, sizeof(int) * quintLastIndex);		//TODO: Can probably make this 10% as large as quintLastIndex??
 
 	cout << "dog\n";
 
@@ -114,7 +114,7 @@ cout << cons << "," << consFourth << "," << consFifth << endl;
 
 	// Transfer data back to host memory
 	cudaMemcpy(&h_hitCount , d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
-	cudaMemcpy(out, d_out, sizeof(float) * quintLastIndex, cudaMemcpyDeviceToHost);
+	cudaMemcpy(out, d_out, sizeof(int) * quintLastIndex, cudaMemcpyDeviceToHost);
 	//cout << "ferret\n";
 	// //cudaDeviceSynchronize();
 

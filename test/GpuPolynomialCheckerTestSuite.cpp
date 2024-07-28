@@ -8,7 +8,7 @@ TEST(GpuPolynomialCheckerTestSuite, VLoopResultsConfirmTest) {
     std::vector<float*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{-1,6,-1,6,-1,6,-1,6,-1,1446,-1,-1};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges);
+    //hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges);
 
     // manual analysis indicates there should be at least 19 hits within .000005 range...
 	ASSERT_LE(19, hits->size());

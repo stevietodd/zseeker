@@ -16,7 +16,7 @@ void printHit(int i5, int i4, int i3, int i2, int i1, int i0)
 		LUT[i1] << "c + " << LUT[i0] << " = HIT!\n";
 }
 
-std::vector<float*>* CpuPolynomialChecker::findHits(
+std::vector<int*>* CpuPolynomialChecker::findHits(
             const float needle,
             const float theConst,
             const int degree,
@@ -55,9 +55,10 @@ std::vector<float*>* CpuPolynomialChecker::findHits(
 	const float theConst4 = powl(theConst, (float)4);
 	const float theConst5 = powl(theConst, (float)5);
 
-    float v0, v1, v2, v3, v4, *hit;
+    float v0, v1, v2, v3, v4;
+    int *hit;
 
-    std::vector<float*> *hits = new std::vector<float*>();
+    std::vector<int*> *hits = new std::vector<int*>();
 
     // note that these loops use <= (less than or EQUAL TO)
     for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
@@ -82,7 +83,7 @@ std::vector<float*>* CpuPolynomialChecker::findHits(
 
                             if (FLOAT_BASICALLY_EQUAL(LUT[u] * theConst5, (needle - v4))) {
                                 printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=%10.10lf,v4=%10.10lf,(needle-v4)=%10.10lf,diff=%10.10lf\n", LUT[u], theConst5, needle, v4, (needle-v4), ((LUT[u] * theConst5) - (needle-v4)));
-                                hit = new float[6] {LUT[u], LUT[v], LUT[w], LUT[x], LUT[y], LUT[z]};
+                                hit = new int[6] {u, v, w, x, y, z};
                                 hits->push_back(hit);
                                 printHit(u,v,w,x,y,z);
                             }

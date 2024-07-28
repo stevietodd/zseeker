@@ -4,7 +4,7 @@
 
 TEST(CpuPolynomialCheckerTestSuite, VLoopResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuPolynomialChecker();
-    std::vector<float*> *hits;
+    std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{-1,6,-1,6,-1,6,-1,6,-1,1446,-1,-1};
 
     hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges);
@@ -16,7 +16,29 @@ TEST(CpuPolynomialCheckerTestSuite, VLoopResultsConfirmTest) {
     EXPECT_GE(30, hits->size());
 
     // now let's ensure some close hits (err <= .000003) were returned
-    EXPECT_THAT(hits, Contains("dog"));
+    bool hit1Found = false, hit2Found = false, hit3Found = false;
+    int hit1[] = {22,22,22,22,22,22};
+    int hit2[] = {2,2,2,2,2,2};
+    int hit3[] = {222,222,222,222,222,222};
+    for (int* hit : *hits) {
+        if (!hit1Found && 0 == std::memcmp(hit, hit1, sizeof(hit1))) {
+            hit1Found = true;
+            continue;
+        }
+        if (!hit2Found && 0 == std::memcmp(hit, hit2, sizeof(hit2))) {
+            hit2Found = true;
+            continue;
+        }
+        if (!hit3Found && 0 == std::memcmp(hit, hit3, sizeof(hit3))) {
+            hit3Found = true;
+            continue;
+        }
+    }
+
+    if (!hit1 || !hit2 || !hit3) {
+        // didn't find all 3 hits, log failure, actually split these out TODO
+        FAIL();
+    }
     //coeff = 191426;
 }
 

@@ -9,7 +9,7 @@ class CpuPolynomialChecker : public PolynomialCheckerInterface
         CpuPolynomialChecker(){}
         ~CpuPolynomialChecker(){}
 
-        virtual std::vector<float*>* findHits(
+        std::vector<int*>* findHits(
             const float needle,
             const float theConst,
             const int degree,

@@ -9,7 +9,7 @@ class GpuPolynomialChecker : public PolynomialCheckerInterface
         GpuPolynomialChecker(){}
         ~GpuPolynomialChecker(){}
 
-        std::vector<float*>* findHits(
+        std::vector<int*>* findHits(
             const float needle,
             const float theConst,
             const int degree,
