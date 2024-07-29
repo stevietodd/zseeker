@@ -16,23 +16,17 @@ __global__ static void compareToZeta5(T *out, const T val, const T needle, const
 
     // Handling arbitrary vector size
     if (tid < n){
-		//printf("coeff=%f\n", coeffArray[tid]);
-		if (needle > -71 && needle < -70 && tid == 636850) {
-			// special debug print
-			printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=?,v4=?,(needle-v4)=%10.10lf\n", coeffArray[tid], val, needle);
-			printf("***DIFF=%10.10lf***\n", (val * coeffArray[tid]) - needle);
-		}
 		if (FLOAT_BASICALLY_EQUAL(coeffArray[tid] * val, needle)) {
-			printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=?,v4=?,(needle-v4)=%10.10lf\n", coeffArray[tid], val, needle);
-			printf(
-				"Hit found in block %d, thread %d: %f + coeffArray[%d]*c^5 (%f) within %f\n",
-				blockIdx.x,
-				threadIdx.x,
-				(M_PI-needle),
-				tid,
-				coeffArray[tid],
-				expr
-			);
+			// printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=?,v4=?,(needle-v4)=%10.10lf\n", coeffArray[tid], val, needle);
+			// printf(
+			// 	"Hit found in block %d, thread %d: %f + coeffArray[%d]*c^5 (%f) within %f\n",
+			// 	blockIdx.x,
+			// 	threadIdx.x,
+			// 	(M_PI-needle),
+			// 	tid,
+			// 	coeffArray[tid],
+			// 	expr
+			// );
 			i = atomicAdd(hitCount, 1);
 			out[i] = tid; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]
 		}
@@ -120,12 +114,11 @@ cout << cons << "," << consFourth << "," << consFifth << endl;
 
 	cout << h_hitCount << endl;
 
-	// for (int j = 0; j < quintLastIndex; j++) {
-	// 	if (out[j] != 0) {
-	// 		printHit(j, i, cubicSum, coeffArray);
-	// 		results->push_back(new float[2] {coeffArray[i], coeffArray[j]});
-	// 	}
-	// }
+	for (int j = 0; j < h_hitCount; j++) {
+		// TODO: Update these lines! Second param in printHit and first array value in pushback was i but I haven't figured out how to tie those together now
+		printHit(j, j, cubicSum, coeffArray);
+		results->push_back(new int[2] {j, j});
+	}
 
 	//cout << i << "\n";
     
@@ -143,7 +136,7 @@ cout << cons << "," << consFourth << "," << consFifth << endl;
 	return results;
 }
 
-std::vector<float*>* GpuPolynomialChecker::findHits(
+std::vector<int*>* GpuPolynomialChecker::findHits(
             const float needle,
             const float theConst,
             const int degree,
@@ -177,7 +170,7 @@ std::vector<float*>* GpuPolynomialChecker::findHits(
 
     float v0, v1, v2, v3, v4, v5, *hit;
 
-    std::vector<float*> *hits = new std::vector<float*>();
+    std::vector<int*> *hits = new std::vector<int*>();
 
     // note that these loops use <= (less than or EQUAL TO)
     for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
@@ -190,6 +183,7 @@ std::vector<float*>* GpuPolynomialChecker::findHits(
 				v2 = v1 + coeffArray[x] * theConst2;
 
 				for (int w = loopStartEnds[6]; w <= loopStartEnds[7]; w++) {
+					printf("dog\n");
 					v3 = v2 + coeffArray[w] * theConst3;
                         hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[9], loopStartEnds[11]);
                 }

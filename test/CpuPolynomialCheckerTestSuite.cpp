@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "../math.hpp"
 #include "../CpuPolynomialChecker.hpp"
+#include <cstring> // for memcmp
 
 TEST(CpuPolynomialCheckerTestSuite, VLoopResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuPolynomialChecker();
@@ -17,9 +18,9 @@ TEST(CpuPolynomialCheckerTestSuite, VLoopResultsConfirmTest) {
 
     // now let's ensure some close hits (err <= .000003) were returned
     bool hit1Found = false, hit2Found = false, hit3Found = false;
-    int hit1[] = {22,22,22,22,22,22};
-    int hit2[] = {2,2,2,2,2,2};
-    int hit3[] = {222,222,222,222,222,222};
+    int hit1[] = {191426,231,6,6,6,6}; // -0.372795969c^5 + 1.18181813c^4
+    int hit2[] = {944474,307,6,6,6,6}; // -0.724177063c^5 + 2.28571439c^4
+    int hit3[] = {596090,1445,6,6,6,6}; // -0.00570613425c^5 + 0.0285714287c^4
     for (int* hit : *hits) {
         if (!hit1Found && 0 == std::memcmp(hit, hit1, sizeof(hit1))) {
             hit1Found = true;
@@ -35,16 +36,15 @@ TEST(CpuPolynomialCheckerTestSuite, VLoopResultsConfirmTest) {
         }
     }
 
-    if (!hit1 || !hit2 || !hit3) {
-        // didn't find all 3 hits, log failure, actually split these out TODO
-        FAIL();
+    if (!hit1Found || !hit2Found || !hit3Found) {
+        FAIL() << "Did not find all hits we were expecting. Found Hit1? Hit2?, Hit3? = " << hit1Found << ","
+            << hit2Found << "," << hit3Found;
     }
-    //coeff = 191426;
 }
 
 TEST(CpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {
     PolynomialCheckerInterface *checker = new CpuPolynomialChecker();
-    std::vector<float*> *hits;
+    std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{-1,6,-1,6,-1,6,-1,6,-1,-1,-1,6};
 
     hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges);
