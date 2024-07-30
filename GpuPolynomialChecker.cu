@@ -116,6 +116,7 @@ cout << cons << "," << consFourth << "," << consFifth << endl;
 
 	for (int j = 0; j < h_hitCount; j++) {
 		// TODO: Update these lines! Second param in printHit and first array value in pushback was i but I haven't figured out how to tie those together now
+		// TODO: Also this should be using the out variable, not just the j-indices duh
 		printHit(j, j, cubicSum, coeffArray);
 		results->push_back(new int[2] {j, j});
 	}
@@ -185,7 +186,9 @@ std::vector<int*>* GpuPolynomialChecker::findHits(
 				for (int w = loopStartEnds[6]; w <= loopStartEnds[7]; w++) {
 					printf("dog\n");
 					v3 = v2 + coeffArray[w] * theConst3;
-                        hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[9], loopStartEnds[11]);
+					//TODO: Shouldn't overwrite this every time. Also need to take the 2 results returned
+					// and make a new "hit" with all 6 coeff indices to return
+                    hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[9], loopStartEnds[11]);
                 }
             }
         }
