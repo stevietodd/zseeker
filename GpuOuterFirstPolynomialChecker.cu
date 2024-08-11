@@ -1,4 +1,4 @@
-#include "GpuPolynomialChecker.hpp"
+#include "GpuOuterFirstPolynomialChecker.hpp"
 #include "math.hpp"
 
 // cuda.cu
@@ -10,33 +10,52 @@ using namespace std;
 template<typename T>
 __global__ static void compareToZeta5loop(T *out, const T val, const T needle, const T *coeffArray, int n, int *hitCount) {
 	printf("%d - %d - %d\n", blockDim.x, blockDim.y, blockDim.z);
-    int quintInd = blockIdx.x * blockDim.x + threadIdx.x;
-	int quartInd = blockIdx.y * blockDim.y + threadIdx.y; // TODO: Use blockDim.x instead?
+	int quintInd = blockIdx.x * blockDim.x + threadIdx.x;
+	int quartInd = blockIdx.y * blockDim.y + threadIdx.y;
+	int cubicInd = blockIdx.z * blockDim.z + threadIdx.z;
+	float topThreeTerms = coeffArray[quintInd] // TODO! Pass in const vals, figure out first3terms
     T expr;
 	register int i;
-	//printf("Hello from block %d, thread %d => tid %d. n=%d\n", blockIdx.x, threadIdx.x, tid, n);
+	//printf("Quint = %d, quart = %d, cubic = %d. n=%d\n", quintInd, quartInd, cubicInd, n);
 
     // Handling arbitrary vector size
-    if (tid < n){
-		if (FLOAT_BASICALLY_EQUAL(coeffArray[tid] * val, needle)) {
-			// printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=?,v4=?,(needle-v4)=%10.10lf\n", coeffArray[tid], val, needle);
-			// printf(
-			// 	"Hit found in block %d, thread %d: %f + coeffArray[%d]*c^5 (%f) within %f\n",
-			// 	blockIdx.x,
-			// 	threadIdx.x,
-			// 	(M_PI-needle),
-			// 	tid,
-			// 	coeffArray[tid],
-			// 	expr
-			// );
-			i = atomicAdd(hitCount, 1);
-			out[i] = tid; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]
-		}
-	}
-}
+    if (quintInd < 1'216'772 && quartInd < 304'468 && cubicInd < 12'180){
+		// // note that these loops use <= (less than or EQUAL TO)
+		for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
+			v0 = coeffArray[z];
+		
+			for (int y = loopStartEnds[2]; y <= loopStartEnds[3]; y++) {
+				v1 = v0 + coeffArray[y] * theConst;
 
-bool InitCUDA(bool b) {
-    /* CUDA Initialization */
+				for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
+					v2 = v1 + coeffArray[x] * theConst2;
+
+					for (int w = loopStartEnds[6]; w <= loopStartEnds[7]; w++) {
+						printf("dog\n");
+						v3 = v2 + coeffArray[w] * theConst3;
+						//TODO: Shouldn't overwrite this every time. Also need to take the 2 results returned
+						// and make a new "hit" with all 6 coeff indices to return
+						hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[9], loopStartEnds[11]);
+					}
+				}
+			}
+		}
+
+		// if (FLOAT_BASICALLY_EQUAL(coeffArray[tid] * val, needle)) {
+		// 	// printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=?,v4=?,(needle-v4)=%10.10lf\n", coeffArray[tid], val, needle);
+		// 	// printf(
+		// 	// 	"Hit found in block %d, thread %d: %f + coeffArray[%d]*c^5 (%f) within %f\n",
+		// 	// 	blockIdx.x,
+		// 	// 	threadIdx.x,
+		// 	// 	(M_PI-needle),
+		// 	// 	tid,
+		// 	// 	coeffArray[tid],
+		// 	// 	expr
+		// 	// );
+		// 	i = atomicAdd(hitCount, 1);
+		// 	out[i] = tid; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]
+		// }
+	}
 }
 
 template<typename T>
@@ -46,7 +65,7 @@ void printHit(int i5, int i4, const T cubicSum, const T *coeffArray)
 		coeffArray[i5] << "c^5 + " << coeffArray[i4] << "c^4 + " << cubicSum << "= HIT!\n";
 }
 
-std::vector<int*>* GpuPolynomialChecker::findHits(
+std::vector<int*>* GpuOuterFirstPolynomialChecker::findHits(
             const float needle,
             const float theConst,
             const int degree,
@@ -67,6 +86,8 @@ std::vector<int*>* GpuPolynomialChecker::findHits(
 	const float theConst4 = powl(theConst, (float)4);
 	const float theConst5 = powl(theConst, (float)5);
 	const int quintLastIndex = 1'216'772;
+	const int quartLastIndex = 304'468;
+	const int cubicLastIndex = 12'180;
 	std::vector<int*> *results = new std::vector<int*>();
 
 	float *d_coeffArray, *d_out;
@@ -96,13 +117,18 @@ std::vector<int*>* GpuPolynomialChecker::findHits(
 
 	cout << "cat\n";
 
-	int block_size = 1024;
+	//int block_size = 1024;
+	// this block size setup may seem arbitrary, but the most important part is y = 8 because max grid (not block) index
+	// is 65,535 and we need 65,535 * block.y > 304,468
+	dim3 blocksizes(16, 8, 8);
+
     //int grid_size = ((quintLastIndex + block_size) / block_size);
-	dim3 gridsizes((quintLastIndex / block_size) + 1, (304'468 / block_size) + 1, (12'180 / block_size) + 1);
+	// we add 1 to each to make sure we actually do all of the work
+	dim3 gridsizes((quintLastIndex / blocksizes.x) + 1, (quartLastIndex / blocksizes.y) + 1, (cubicLastIndex / blocksizes.z) + 1);
 	//cout << gridsizes << "\n";
 
 	// Execute kernel
-	compareToZeta5loop<<<gridsizes, block_size>>>(d_out, theConst5, z5, d_coeffArray, quintLastIndex, d_hitCount);
+	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst5, z5, d_coeffArray, quintLastIndex, d_hitCount);
 
 	// Transfer data back to host memory
 	cudaMemcpy(&h_hitCount , d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
@@ -110,12 +136,12 @@ std::vector<int*>* GpuPolynomialChecker::findHits(
 
 	cout << h_hitCount << endl;
 
-	for (int j = 0; j < h_hitCount; j++) {
-		// TODO: Update these lines! Second param in printHit and first array value in pushback was i but I haven't figured out how to tie those together now
-		// TODO: Also this should be using the out variable, not just the j-indices duh
-		printHit(j, j, cubicSum, coeffArray);
-		results->push_back(new int[2] {j, j});
-	}
+	// for (int j = 0; j < h_hitCount; j++) {
+	// 	// TODO: Update these lines! Second param in printHit and first array value in pushback was i but I haven't figured out how to tie those together now
+	// 	// TODO: Also this should be using the out variable, not just the j-indices duh
+	// 	printHit(j, j, cubicSum, coeffArray);
+	// 	results->push_back(new int[2] {j, j});
+	// }
 
 	//cout << i << "\n";
     
@@ -133,50 +159,50 @@ std::vector<int*>* GpuPolynomialChecker::findHits(
 	return results;
 
 
-    //TODO: Use degree for way more things than just processing loopRanges
-    // if loopRanges is non-null, find first level with positive values (-1 indicates use default) and use those
-    // note that we ignore any level after that since we don't want to skip coeffs in later loops
-    if (loopRanges != NULL) {
-        // loopRanges must have (2*(degree+1)) elements. Format is [zStart, zEnd, yStart, yEnd, ...]
-        for (int loopRangeInd = 0; loopRangeInd < (2*(degree+1)); loopRangeInd++) {
-            //TODO: Make this not so hacky and stupid
-            if (loopRanges->at(loopRangeInd) >= 0) {
-                // they are setting a non-default value, so update loopStartEnds
-                loopStartEnds[loopRangeInd] = loopRanges->at(loopRangeInd);
-                std::cout << "WARNING: You have set a non-standard loop range. Your search may be incomplete" << std::endl;
-            }
-        }
-    }
+    // //TODO: Use degree for way more things than just processing loopRanges
+    // // if loopRanges is non-null, find first level with positive values (-1 indicates use default) and use those
+    // // note that we ignore any level after that since we don't want to skip coeffs in later loops
+    // if (loopRanges != NULL) {
+    //     // loopRanges must have (2*(degree+1)) elements. Format is [zStart, zEnd, yStart, yEnd, ...]
+    //     for (int loopRangeInd = 0; loopRangeInd < (2*(degree+1)); loopRangeInd++) {
+    //         //TODO: Make this not so hacky and stupid
+    //         if (loopRanges->at(loopRangeInd) >= 0) {
+    //             // they are setting a non-default value, so update loopStartEnds
+    //             loopStartEnds[loopRangeInd] = loopRanges->at(loopRangeInd);
+    //             std::cout << "WARNING: You have set a non-standard loop range. Your search may be incomplete" << std::endl;
+    //         }
+    //     }
+    // }
 
-    const float theConst2 = powl(theConst, (float)2);
-	const float theConst3 = powl(theConst, (float)3);
-	const float theConst4 = powl(theConst, (float)4);
-	const float theConst5 = powl(theConst, (float)5);
+    // const float theConst2 = powl(theConst, (float)2);
+	// const float theConst3 = powl(theConst, (float)3);
+	// const float theConst4 = powl(theConst, (float)4);
+	// const float theConst5 = powl(theConst, (float)5);
 
-    float v0, v1, v2, v3, v4, v5, *hit;
+    // float v0, v1, v2, v3, v4, v5, *hit;
 
-    std::vector<int*> *hits = new std::vector<int*>();
+    // std::vector<int*> *hits = new std::vector<int*>();
 
-    // note that these loops use <= (less than or EQUAL TO)
-    for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
-		v0 = coeffArray[z];
+    // // note that these loops use <= (less than or EQUAL TO)
+    // for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
+	// 	v0 = coeffArray[z];
 	
-		for (int y = loopStartEnds[2]; y <= loopStartEnds[3]; y++) {
-			v1 = v0 + coeffArray[y] * theConst;
+	// 	for (int y = loopStartEnds[2]; y <= loopStartEnds[3]; y++) {
+	// 		v1 = v0 + coeffArray[y] * theConst;
 
-			for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
-				v2 = v1 + coeffArray[x] * theConst2;
+	// 		for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
+	// 			v2 = v1 + coeffArray[x] * theConst2;
 
-				for (int w = loopStartEnds[6]; w <= loopStartEnds[7]; w++) {
-					printf("dog\n");
-					v3 = v2 + coeffArray[w] * theConst3;
-					//TODO: Shouldn't overwrite this every time. Also need to take the 2 results returned
-					// and make a new "hit" with all 6 coeff indices to return
-                    hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[9], loopStartEnds[11]);
-                }
-            }
-        }
-    }
+	// 			for (int w = loopStartEnds[6]; w <= loopStartEnds[7]; w++) {
+	// 				printf("dog\n");
+	// 				v3 = v2 + coeffArray[w] * theConst3;
+	// 				//TODO: Shouldn't overwrite this every time. Also need to take the 2 results returned
+	// 				// and make a new "hit" with all 6 coeff indices to return
+    //                 hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[9], loopStartEnds[11]);
+    //             }
+    //         }
+    //     }
+    // }
 
-    return hits;
+    // return hits;
 }
