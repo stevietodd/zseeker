@@ -8,61 +8,50 @@ using namespace std;
 
 // calculates val * [vector elems] and returns if close enough to needle
 template<typename T>
-__global__ static void compareToZeta5loop(T *out, const T val, const T needle, const T *coeffArray, int n, int *hitCount) {
-	printf("%d - %d - %d\n", blockDim.x, blockDim.y, blockDim.z);
-	int quintInd = blockIdx.x * blockDim.x + threadIdx.x;
-	int quartInd = blockIdx.y * blockDim.y + threadIdx.y;
-	int cubicInd = blockIdx.z * blockDim.z + threadIdx.z;
-	float topThreeTerms = coeffArray[quintInd] // TODO! Pass in const vals, figure out first3terms
-    T expr;
-	register int i;
-	//printf("Quint = %d, quart = %d, cubic = %d. n=%d\n", quintInd, quartInd, cubicInd, n);
+__global__ static void compareToZeta5loop(T *out, const T theConst, const T needle, const T *coeffArray, int n, int *hitCount) {
+	const float theConst2 = pow(theConst, (float)2);
+	float v0, v1, v2;
+	const int quintInd = blockIdx.x * blockDim.x + threadIdx.x;
+	const int quartInd = blockIdx.y * blockDim.y + threadIdx.y;
+	const int cubicInd = blockIdx.z * blockDim.z + threadIdx.z;
+
+	// breakout
+	if (quintInd >= 1'216'772 || quartInd >= 304'468 || cubicInd >= 12'180) {
+		return;
+	}
+
+	const float topThreeTerms = (coeffArray[quintInd] * pow(theConst, (float)5))
+		+ (coeffArray[quartInd] * pow(theConst, (float)4))
+		+ (coeffArray[cubicInd] * pow(theConst, (float)3));
+    //T expr;
+	//register int i;
+	printf("Quint = %d, quart = %d, cubic = %d. n=%d\n", quintInd, quartInd, cubicInd, n);
 
     // Handling arbitrary vector size
-    if (quintInd < 1'216'772 && quartInd < 304'468 && cubicInd < 12'180){
-		// // note that these loops use <= (less than or EQUAL TO)
-		for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
-			v0 = coeffArray[z];
-		
-			for (int y = loopStartEnds[2]; y <= loopStartEnds[3]; y++) {
-				v1 = v0 + coeffArray[y] * theConst;
+	// // note that these loops use <= (less than or EQUAL TO)
+	for (int z = 0; z <= 292; z++) {
+	//for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
+		v0 = coeffArray[z];
+		//printf("%d,", z);
+	
+		for (int y = 0; y <= 1'116; y++) {
+		//for (int y = loopStartEnds[2]; y <= loopStartEnds[3]; y++) {
+			v1 = v0 + coeffArray[y] * theConst;
 
-				for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
-					v2 = v1 + coeffArray[x] * theConst2;
+			for (int x = 0; x <= 4'412; x++) {
+			//for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
+				v2 = v1 + coeffArray[x] * theConst2;
 
-					for (int w = loopStartEnds[6]; w <= loopStartEnds[7]; w++) {
-						printf("dog\n");
-						v3 = v2 + coeffArray[w] * theConst3;
-						//TODO: Shouldn't overwrite this every time. Also need to take the 2 results returned
-						// and make a new "hit" with all 6 coeff indices to return
-						hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[9], loopStartEnds[11]);
-					}
+				if (FLOAT_BASICALLY_EQUAL((topThreeTerms + v2), needle)) {
+					// printf("(%d,%d,%d,%d,%d,%d): %f*c^5 + %f*c^4 + %f*c^3 + %f*c^2 + %f*c + %f = HIT!\n",
+					// 	quintInd, quartInd, cubicInd, x, y, z, coeffArray[quintInd], coeffArray[quartInd],
+					// 	coeffArray[cubicInd], coeffArray[x], coeffArray[y], coeffArray[z]);
+					// i = atomicAdd(hitCount, 1);
+					// out[i] = tid; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]		
 				}
 			}
 		}
-
-		// if (FLOAT_BASICALLY_EQUAL(coeffArray[tid] * val, needle)) {
-		// 	// printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=?,v4=?,(needle-v4)=%10.10lf\n", coeffArray[tid], val, needle);
-		// 	// printf(
-		// 	// 	"Hit found in block %d, thread %d: %f + coeffArray[%d]*c^5 (%f) within %f\n",
-		// 	// 	blockIdx.x,
-		// 	// 	threadIdx.x,
-		// 	// 	(M_PI-needle),
-		// 	// 	tid,
-		// 	// 	coeffArray[tid],
-		// 	// 	expr
-		// 	// );
-		// 	i = atomicAdd(hitCount, 1);
-		// 	out[i] = tid; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]
-		// }
 	}
-}
-
-template<typename T>
-void printHit(int i5, int i4, const T cubicSum, const T *coeffArray)
-{
-	cout << "(" << i5 << "," << i4 << ",?,?,?,?): " <<
-		coeffArray[i5] << "c^5 + " << coeffArray[i4] << "c^4 + " << cubicSum << "= HIT!\n";
 }
 
 std::vector<int*>* GpuOuterFirstPolynomialChecker::findHits(
@@ -128,13 +117,14 @@ std::vector<int*>* GpuOuterFirstPolynomialChecker::findHits(
 	//cout << gridsizes << "\n";
 
 	// Execute kernel
-	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst5, z5, d_coeffArray, quintLastIndex, d_hitCount);
+	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst, z5, d_coeffArray, quintLastIndex, d_hitCount);
 
 	// Transfer data back to host memory
 	cudaMemcpy(&h_hitCount , d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
 	cudaMemcpy(out, d_out, sizeof(int) * quintLastIndex, cudaMemcpyDeviceToHost);
 
 	cout << h_hitCount << endl;
+	cout << "YOOOO!" << endl;
 
 	// for (int j = 0; j < h_hitCount; j++) {
 	// 	// TODO: Update these lines! Second param in printHit and first array value in pushback was i but I haven't figured out how to tie those together now

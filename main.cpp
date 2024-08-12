@@ -1,6 +1,7 @@
 #include <iostream>
 #include "CpuPolynomialChecker.hpp"
 #include "GpuPolynomialChecker.hpp"
+#include "GpuOuterFirstPolynomialChecker.hpp"
 #include "math.hpp"
 #include "lookupTable.hpp"
 
@@ -10,12 +11,17 @@ int main(int argc, char *argv[])
     std::vector<int*> *hits;
 
     switch (argc) {
-		case 2:
+		case 3:
 		{
             // TODO: Make this argument handling WAY more robust and intuitive
 			checker = new CpuPolynomialChecker();
             break;
 		}
+        case 2:
+        {
+            checker = new GpuOuterFirstPolynomialChecker();
+            break;
+        }
         default:
         {
             checker = new GpuPolynomialChecker();
