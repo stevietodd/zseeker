@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 		case 3:
 		{
             // TODO: Make this argument handling WAY more robust and intuitive
-			checker = new CpuPolynomialChecker();
+			checker = new CpuQuinticLastChecker();
             break;
 		}
         case 2:

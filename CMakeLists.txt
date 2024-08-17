@@ -80,7 +80,8 @@ target_link_libraries(
 add_executable(
   CpuPolynomialCheckerTestSuite
   test/CpuPolynomialCheckerTestSuite.cpp
-  CpuPolynomialChecker.cpp
+  CpuQuinticLastChecker.cpp
+  CpuQuinticFirstChecker.cpp
 )
 target_link_libraries(
   CpuPolynomialCheckerTestSuite
@@ -125,7 +126,7 @@ add_executable(
   main.cpp
   PolynomialCheckerInterface.hpp
   CpuPolynomialChecker.hpp
-  CpuPolynomialChecker.cpp
+  CpuQuinticLastChecker.cpp
   GpuPolynomialChecker.hpp
   GpuPolynomialChecker.cu
   GpuOuterFirstPolynomialChecker.hpp

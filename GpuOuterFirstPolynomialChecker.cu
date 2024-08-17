@@ -25,7 +25,9 @@ __global__ static void compareToZeta5loop(T *out, const T theConst, const T need
 		+ (coeffArray[cubicInd] * pow(theConst, (float)3));
     //T expr;
 	//register int i;
-	printf("Quint = %d, quart = %d, cubic = %d. n=%d\n", quintInd, quartInd, cubicInd, n);
+	// if (quartInd % 60000 == 0 && cubicInd % 60000 == 0) {
+	// printf("Quint = %d, quart = %d, cubic = %d. n=%d\n", quintInd, quartInd, cubicInd, n);
+	// }
 
     // Handling arbitrary vector size
 	// // note that these loops use <= (less than or EQUAL TO)
@@ -43,9 +45,9 @@ __global__ static void compareToZeta5loop(T *out, const T theConst, const T need
 				v2 = v1 + coeffArray[x] * theConst2;
 
 				if (FLOAT_BASICALLY_EQUAL((topThreeTerms + v2), needle)) {
-					// printf("(%d,%d,%d,%d,%d,%d): %f*c^5 + %f*c^4 + %f*c^3 + %f*c^2 + %f*c + %f = HIT!\n",
-					// 	quintInd, quartInd, cubicInd, x, y, z, coeffArray[quintInd], coeffArray[quartInd],
-					// 	coeffArray[cubicInd], coeffArray[x], coeffArray[y], coeffArray[z]);
+					printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
+						quintInd, quartInd, cubicInd, x, y, z, coeffArray[quintInd], coeffArray[quartInd],
+						coeffArray[cubicInd], coeffArray[x], coeffArray[y], coeffArray[z]);
 					// i = atomicAdd(hitCount, 1);
 					// out[i] = tid; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]		
 				}

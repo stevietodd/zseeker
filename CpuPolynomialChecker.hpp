@@ -3,11 +3,41 @@
 
 #include "PolynomialCheckerInterface.hpp"
 
-class CpuPolynomialChecker : public PolynomialCheckerInterface
+class CpuQuinticLastChecker : public PolynomialCheckerInterface
 {
     public:
-        CpuPolynomialChecker(){}
-        ~CpuPolynomialChecker(){}
+        CpuQuinticLastChecker(){}
+        ~CpuQuinticLastChecker(){}
+
+        std::vector<int*>* findHits(
+            const float needle,
+            const float theConst,
+            const int degree,
+            const float *coeffArray,
+            const std::vector<int> *loopRanges
+        );
+};
+
+class CpuQuinticFirstChecker : public PolynomialCheckerInterface
+{
+    public:
+        CpuQuinticFirstChecker(){}
+        ~CpuQuinticFirstChecker(){}
+
+        std::vector<int*>* findHits(
+            const float needle,
+            const float theConst,
+            const int degree,
+            const float *coeffArray,
+            const std::vector<int> *loopRanges
+        );
+};
+
+class CpuQuinticFirstWithBreakoutsChecker : public PolynomialCheckerInterface
+{
+    public:
+        CpuQuinticFirstWithBreakoutsChecker(){}
+        ~CpuQuinticFirstWithBreakoutsChecker(){}
 
         std::vector<int*>* findHits(
             const float needle,

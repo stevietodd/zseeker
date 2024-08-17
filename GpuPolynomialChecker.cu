@@ -147,6 +147,7 @@ std::vector<int*>* GpuPolynomialChecker::findHits(
 {
     // TODO: This sucks. Change this
     // note that even elements are LUT[0] through LUT[5]
+	// TODO 8/16/24 Make this {6, 1'216'772, 6, 304'468, 6, 12'180, 6, 4'412, 6, 1'116, 6, 292}; instead!!!!
     int loopStartEnds[12] = {6, 292, 6, 1'116, 6, 4'412, 6, 12'180, 6, 304'468, 6, 1'216'772};
 
     //TODO: Use degree for way more things than just processing loopRanges
