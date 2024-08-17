@@ -147,8 +147,7 @@ std::vector<int*>* GpuPolynomialChecker::findHits(
 {
     // TODO: This sucks. Change this
     // note that even elements are LUT[0] through LUT[5]
-	// TODO 8/16/24 Make this {6, 1'216'772, 6, 304'468, 6, 12'180, 6, 4'412, 6, 1'116, 6, 292}; instead!!!!
-    int loopStartEnds[12] = {6, 292, 6, 1'116, 6, 4'412, 6, 12'180, 6, 304'468, 6, 1'216'772};
+    int loopStartEnds[12] = {6, 1'216'772, 6, 304'468, 6, 12'180, 6, 4'412, 6, 1'116, 6, 292};
 
     //TODO: Use degree for way more things than just processing loopRanges
     // if loopRanges is non-null, find first level with positive values (-1 indicates use default) and use those
@@ -175,21 +174,21 @@ std::vector<int*>* GpuPolynomialChecker::findHits(
     std::vector<int*> *hits = new std::vector<int*>();
 
     // note that these loops use <= (less than or EQUAL TO)
-    for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
+    for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
 		v0 = coeffArray[z];
 	
-		for (int y = loopStartEnds[2]; y <= loopStartEnds[3]; y++) {
+		for (int y = loopStartEnds[8]; y <= loopStartEnds[9]; y++) {
 			v1 = v0 + coeffArray[y] * theConst;
 
-			for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
+			for (int x = loopStartEnds[6]; x <= loopStartEnds[7]; x++) {
 				v2 = v1 + coeffArray[x] * theConst2;
 
-				for (int w = loopStartEnds[6]; w <= loopStartEnds[7]; w++) {
+				for (int w = loopStartEnds[4]; w <= loopStartEnds[5]; w++) {
 					printf("dog\n");
 					v3 = v2 + coeffArray[w] * theConst3;
 					//TODO: Shouldn't overwrite this every time. Also need to take the 2 results returned
 					// and make a new "hit" with all 6 coeff indices to return
-                    hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[9], loopStartEnds[11]);
+                    hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[3], loopStartEnds[1]);
                 }
             }
         }
