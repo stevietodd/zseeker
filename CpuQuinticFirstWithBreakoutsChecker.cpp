@@ -20,7 +20,7 @@ void printHit(int i5, int i4, int i3, int i2, int i1, int i0)
 }
 */
 
-std::vector<int*>* CpuQuinticFirstChecker::findHits(
+std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
             const float needle,
             const float theConst,
             const int degree,
@@ -59,6 +59,34 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
 	const float theConst4 = powl(theConst, (float)4);
 	const float theConst5 = powl(theConst, (float)5);
 
+    // these values represent the largest coefficient per term
+    const float uplim5 = 1000;
+	const float uplim4 = 500;
+	const float uplim3 = 100;
+	const float uplim2 = 60;
+	const float uplim1 = 30;
+	const float uplim0 = 15;
+
+    // these values represent the largest possible sum of each term plus those below them
+	const float v0max = uplim0;
+	const float v1max = uplim1 * theConst + v0max;
+	const float v2max = uplim2 * theConst2 + v1max;
+	const float v3max = uplim3 * theConst3 + v2max;
+	const float v4max = uplim4 * theConst4 + v3max;
+
+    // finally, these values represent how far away (+/-) we can be in a loop before it is deemed unnecessary to complete lower loops
+    const float tolerance = needle; // NOTE that this is currently set to the needle
+	const float v1BreakoutHigh = needle + v0max;
+	const float v1BreakoutLow = needle - v0max;
+	const float v2BreakoutHigh = needle + v1max;
+	const float v2BreakoutLow = needle - v1max;
+	const float v3BreakoutHigh = needle + v2max;
+	const float v3BreakoutLow = needle - v2max;
+	const float v4BreakoutHigh = needle + v3max;
+	const float v4BreakoutLow = needle - v3max;
+	const float v5BreakoutHigh = needle + v4max;
+	const float v5BreakoutLow = needle - v4max;
+
     float v0, v1, v2, v3, v4, v5;
     int *hit;
 
@@ -67,18 +95,38 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
     // note that these loops use <= (less than or EQUAL TO)
     for (int u = loopStartEnds[0]; u <= loopStartEnds[1]; u++) {
         v5 = LUT[u] * theConst5;
+        if (v5 < v5BreakoutLow || v5 > v5BreakoutHigh) {
+            // we can't possibly get back to the needle, so bust out
+            continue;
+        }
 
         for (int v = loopStartEnds[2]; v <= loopStartEnds[3]; v++) {
             v4 = v5 + LUT[v] * theConst4;
+            if (v4 < v4BreakoutLow || v4 > v4BreakoutHigh) {
+				// we can't possibly get back to the needle, so bust out
+				continue;
+			}
 
             for (int w = loopStartEnds[4]; w <= loopStartEnds[5]; w++) {
 				v3 = v4 + LUT[w] * theConst3;
+                if (v3 < v3BreakoutLow || v3 > v3BreakoutHigh) {
+                    // we can't possibly get back to the needle, so bust out
+                    continue;
+                }
                 
                 for (int x = loopStartEnds[6]; x <= loopStartEnds[7]; x++) {
 				    v2 = v3 + LUT[x] * theConst2;
+                    if (v2 < v2BreakoutLow || v2 > v2BreakoutHigh) {
+            			// we can't possibly get back to the needle, so bust out
+            			continue;
+            		}
 
                     for (int y = loopStartEnds[8]; y <= loopStartEnds[9]; y++) {
                         v1 = v2 + LUT[y] * theConst;
+                        if (v1 < v1BreakoutLow || v1 > v1BreakoutHigh) {
+                            // we can't possibly get back to the needle, so bust out
+                            continue;
+                        }
 
                         for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
                             v0 = v1 + LUT[z];
