@@ -102,7 +102,7 @@ target_link_libraries(
 add_executable(
   GpuOuterFirstPolynomialCheckerTestSuite
   test/GpuOuterFirstPolynomialCheckerTestSuite.cpp
-  GpuOuterFirstPolynomialChecker.cu
+  GpuQuinticFirstChecker.cu
 )
 target_link_libraries(
   GpuOuterFirstPolynomialCheckerTestSuite
@@ -130,6 +130,5 @@ add_executable(
   CpuQuinticLastChecker.cpp
   GpuPolynomialChecker.hpp
   GpuPolynomialChecker.cu
-  GpuOuterFirstPolynomialChecker.hpp
-  GpuOuterFirstPolynomialChecker.cu
+  GpuQuinticFirstChecker.cu
 )

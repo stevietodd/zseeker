@@ -1,4 +1,4 @@
-#include "GpuOuterFirstPolynomialChecker.hpp"
+#include "GpuPolynomialChecker.hpp"
 #include "math.hpp"
 
 // cuda.cu
@@ -56,7 +56,7 @@ __global__ static void compareToZeta5loop(T *out, const T theConst, const T need
 	}
 }
 
-std::vector<int*>* GpuOuterFirstPolynomialChecker::findHits(
+std::vector<int*>* GpuQuinticFirstChecker::findHits(
             const float needle,
             const float theConst,
             const int degree,

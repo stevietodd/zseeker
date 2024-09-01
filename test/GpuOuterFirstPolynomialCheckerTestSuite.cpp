@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "../math.hpp"
-#include "../GpuOuterFirstPolynomialChecker.hpp"
+#include "../GpuPolynomialChecker.hpp"
 #include "../lookupTable.hpp"
 #include <cstring>
 

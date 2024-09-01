@@ -1,7 +1,6 @@
 #include <iostream>
 #include "CpuPolynomialChecker.hpp"
 #include "GpuPolynomialChecker.hpp"
-#include "GpuOuterFirstPolynomialChecker.hpp"
 #include "math.hpp"
 #include "lookupTable.hpp"
 

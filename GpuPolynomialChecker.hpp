@@ -18,4 +18,19 @@ class GpuPolynomialChecker : public PolynomialCheckerInterface
         );
 };
 
+class GpuQuinticFirstChecker : public PolynomialCheckerInterface
+{
+    public:
+        GpuQuinticFirstChecker(){}
+        ~GpuQuinticFirstChecker(){}
+
+        std::vector<int*>* findHits(
+            const float needle,
+            const float theConst,
+            const int degree,
+            const float *coeffArray,
+            const std::vector<int> *loopRanges
+        );
+};
+
 #endif // GPU_POLYNOMIAL_CHECKER_HPP
