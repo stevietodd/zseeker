@@ -14,6 +14,8 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+include(GoogleTest)
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   project(zseeker LANGUAGES CUDA CXX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000 -O3")
@@ -37,13 +39,37 @@ add_executable(
 	cudawrapper.hpp
 	checkz3constantswithz5usingLUTandGPU.cu
 )
+
+add_executable(
+  zseeker2
+  main.cpp
+  PolynomialCheckerInterface.hpp
+  CpuPolynomialChecker.hpp
+  CpuQuinticLastChecker.cpp
+  GpuPolynomialChecker.hpp
+  GpuQuinticLastChecker.cu
+  GpuQuinticFirstChecker.cu
+)
+
+add_executable(
+  GpuPolynomialCheckerTestSuite
+  test/GpuPolynomialCheckerTestSuite.cpp
+  GpuQuinticLastChecker.cu
+  GpuQuinticFirstChecker.cu
+)
+target_link_libraries(
+  GpuPolynomialCheckerTestSuite
+  GTest::gtest_main
+)
+
+gtest_discover_tests(GpuPolynomialCheckerTestSuite)
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-steps=1000000000 -O3")
 
   add_executable(
     zseeker
     checkz3constantswithz5usingLUTandCPU.cpp
-    cudawrapper.hpp
+    #cudawrapper.hpp
     #checkz3constantswithz5usingLUTandGPU.cu
   )
 endif()
@@ -57,6 +83,11 @@ add_executable(
 target_link_libraries(
   PrecisionTestSuite
   GTest::gtest_main
+)
+
+add_executable(
+  PrintPrecisions
+  PrintPrecisions.cpp
 )
 
 add_executable(
@@ -89,28 +120,10 @@ target_link_libraries(
   GTest::gtest_main
 )
 
-add_executable(
-  GpuPolynomialCheckerTestSuite
-  test/GpuPolynomialCheckerTestSuite.cpp
-  GpuQuinticLastChecker.cu
-  GpuQuinticFirstChecker.cu
-)
-target_link_libraries(
-  GpuPolynomialCheckerTestSuite
-  GTest::gtest_main
-)
-
-include(GoogleTest)
 gtest_discover_tests(LookupTableTestSuite)
 gtest_discover_tests(PrecisionTestSuite)
 gtest_discover_tests(ArithmeticTestSuite)
 gtest_discover_tests(CpuPolynomialCheckerTestSuite)
-gtest_discover_tests(GpuPolynomialCheckerTestSuite)
-
-add_executable(
-  PrintPrecisions
-  PrintPrecisions.cpp
-)
 
 add_executable(
   zseeker2
@@ -118,7 +131,7 @@ add_executable(
   PolynomialCheckerInterface.hpp
   CpuPolynomialChecker.hpp
   CpuQuinticLastChecker.cpp
-  GpuPolynomialChecker.hpp
-  GpuQuinticLastChecker.cu
-  GpuQuinticFirstChecker.cu
+  #GpuPolynomialChecker.hpp
+  #GpuQuinticLastChecker.cu
+  #GpuQuinticFirstChecker.cu
 )
