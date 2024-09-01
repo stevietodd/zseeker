@@ -82,6 +82,7 @@ add_executable(
   test/CpuPolynomialCheckerTestSuite.cpp
   CpuQuinticLastChecker.cpp
   CpuQuinticFirstChecker.cpp
+  CpuQuinticFirstWithBreakoutsChecker.cpp
 )
 target_link_libraries(
   CpuPolynomialCheckerTestSuite
