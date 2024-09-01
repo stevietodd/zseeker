@@ -92,20 +92,11 @@ target_link_libraries(
 add_executable(
   GpuPolynomialCheckerTestSuite
   test/GpuPolynomialCheckerTestSuite.cpp
-  GpuPolynomialChecker.cu
-)
-target_link_libraries(
-  GpuPolynomialCheckerTestSuite
-  GTest::gtest_main
-)
-
-add_executable(
-  GpuOuterFirstPolynomialCheckerTestSuite
-  test/GpuOuterFirstPolynomialCheckerTestSuite.cpp
+  GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
 )
 target_link_libraries(
-  GpuOuterFirstPolynomialCheckerTestSuite
+  GpuPolynomialCheckerTestSuite
   GTest::gtest_main
 )
 
@@ -115,7 +106,6 @@ gtest_discover_tests(PrecisionTestSuite)
 gtest_discover_tests(ArithmeticTestSuite)
 gtest_discover_tests(CpuPolynomialCheckerTestSuite)
 gtest_discover_tests(GpuPolynomialCheckerTestSuite)
-gtest_discover_tests(GpuOuterFirstPolynomialCheckerTestSuite)
 
 add_executable(
   PrintPrecisions
@@ -129,6 +119,6 @@ add_executable(
   CpuPolynomialChecker.hpp
   CpuQuinticLastChecker.cpp
   GpuPolynomialChecker.hpp
-  GpuPolynomialChecker.cu
+  GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
 )

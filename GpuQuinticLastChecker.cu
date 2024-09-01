@@ -137,7 +137,7 @@ cout << cons << "," << consFourth << "," << consFifth << endl;
 	return results;
 }
 
-std::vector<int*>* GpuPolynomialChecker::findHits(
+std::vector<int*>* GpuQuinticLastChecker::findHits(
             const float needle,
             const float theConst,
             const int degree,

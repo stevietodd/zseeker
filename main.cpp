@@ -18,12 +18,12 @@ int main(int argc, char *argv[])
 		}
         case 2:
         {
-            checker = new GpuOuterFirstPolynomialChecker();
+            checker = new GpuQuinticFirstChecker();
             break;
         }
         default:
         {
-            checker = new GpuPolynomialChecker();
+            checker = new GpuQuinticLastChecker();
             break;
         }
 	}

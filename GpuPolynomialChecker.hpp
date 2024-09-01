@@ -3,11 +3,11 @@
 
 #include "PolynomialCheckerInterface.hpp"
 
-class GpuPolynomialChecker : public PolynomialCheckerInterface
+class GpuQuinticLastChecker : public PolynomialCheckerInterface
 {
     public:
-        GpuPolynomialChecker(){}
-        ~GpuPolynomialChecker(){}
+        GpuQuinticLastChecker(){}
+        ~GpuQuinticLastChecker(){}
 
         std::vector<int*>* findHits(
             const float needle,
