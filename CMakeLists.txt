@@ -72,6 +72,17 @@ else()
     #cudawrapper.hpp
     #checkz3constantswithz5usingLUTandGPU.cu
   )
+
+  add_executable(
+    zseeker2
+    main.cpp
+    PolynomialCheckerInterface.hpp
+    CpuPolynomialChecker.hpp
+    CpuQuinticLastChecker.cpp
+    #GpuPolynomialChecker.hpp
+    #GpuQuinticLastChecker.cu
+    #GpuQuinticFirstChecker.cu
+  )
 endif()
 
 enable_testing()
@@ -124,14 +135,3 @@ gtest_discover_tests(LookupTableTestSuite)
 gtest_discover_tests(PrecisionTestSuite)
 gtest_discover_tests(ArithmeticTestSuite)
 gtest_discover_tests(CpuPolynomialCheckerTestSuite)
-
-add_executable(
-  zseeker2
-  main.cpp
-  PolynomialCheckerInterface.hpp
-  CpuPolynomialChecker.hpp
-  CpuQuinticLastChecker.cpp
-  #GpuPolynomialChecker.hpp
-  #GpuQuinticLastChecker.cu
-  #GpuQuinticFirstChecker.cu
-)
