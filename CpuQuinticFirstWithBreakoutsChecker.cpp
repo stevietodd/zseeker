@@ -73,19 +73,21 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
 	const float v2max = uplim2 * theConst2 + v1max;
 	const float v3max = uplim3 * theConst3 + v2max;
 	const float v4max = uplim4 * theConst4 + v3max;
+    printf("v4max=%10.10lf,v3max=%10.10lf,v2max=%10.10lf,v1max=%10.10lf,v0max=%10.10lf\n",
+        v4max,v3max,v2max,v1max,v0max);
 
     // finally, these values represent how far away (+/-) we can be in a loop before it is deemed unnecessary to complete lower loops
     const float tolerance = needle; // NOTE that this is currently set to the needle
-	const float v1BreakoutHigh = needle + v0max;
-	const float v1BreakoutLow = needle - v0max;
-	const float v2BreakoutHigh = needle + v1max;
-	const float v2BreakoutLow = needle - v1max;
-	const float v3BreakoutHigh = needle + v2max;
-	const float v3BreakoutLow = needle - v2max;
-	const float v4BreakoutHigh = needle + v3max;
-	const float v4BreakoutLow = needle - v3max;
-	const float v5BreakoutHigh = needle + v4max;
-	const float v5BreakoutLow = needle - v4max;
+	const float v1BreakoutHigh = needle + v0max  + tolerance;
+	const float v1BreakoutLow = needle - v0max - tolerance;
+	const float v2BreakoutHigh = needle + v1max + tolerance;
+	const float v2BreakoutLow = needle - v1max - tolerance;
+	const float v3BreakoutHigh = needle + v2max + tolerance;
+	const float v3BreakoutLow = needle - v2max - tolerance;
+	const float v4BreakoutHigh = needle + v3max + tolerance;
+	const float v4BreakoutLow = needle - v3max - tolerance;
+	const float v5BreakoutHigh = needle + v4max + tolerance;
+	const float v5BreakoutLow = needle - v4max - tolerance;
 
     float v0, v1, v2, v3, v4, v5;
     int *hit;
@@ -132,7 +134,9 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
                             v0 = v1 + LUT[z];
 
                             if (FLOAT_BASICALLY_EQUAL(v0, needle)) {
-                                printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=%10.10lf,v4=%10.10lf,(needle-v4)=%10.10lf,diff=%10.10lf\n", LUT[u], theConst5, needle, v4, (needle-v4), ((LUT[u] * theConst5) - (needle-v4)));
+                                // printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
+						        //     u, v, w, x, y, z, LUT[u], LUT[v],
+						        //     LUT[w], LUT[x], LUT[y], LUT[z]);
                                 hit = new int[6] {u, v, w, x, y, z};
                                 hits->push_back(hit);
                                 //printHit(u,v,w,x,y,z);

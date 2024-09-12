@@ -84,7 +84,9 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
                             v0 = v1 + LUT[z];
 
                             if (FLOAT_BASICALLY_EQUAL(v0, needle)) {
-                                printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=%10.10lf,v4=%10.10lf,(needle-v4)=%10.10lf,diff=%10.10lf\n", LUT[u], theConst5, needle, v4, (needle-v4), ((LUT[u] * theConst5) - (needle-v4)));
+                                // printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
+						        //     u, v, w, x, y, z, LUT[u], LUT[v],
+						        //     LUT[w], LUT[x], LUT[y], LUT[z]);
                                 hit = new int[6] {u, v, w, x, y, z};
                                 hits->push_back(hit);
                                 //printHit(u,v,w,x,y,z);
