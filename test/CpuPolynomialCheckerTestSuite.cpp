@@ -144,7 +144,7 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsSameAsNonBreakoutsT
     int quarticRange = rand() % 304'468; // = quartic max minus 1 because we are doing 2 of these loops
     int cubicRange = rand() % 12'118; // = cubic max minus 63 because we are doing 64 of these loops
     std::vector<int> *loopRanges = new std::vector<int>{
-        quinticRange, quinticRange + 5, // TODO: SET BACK TO just quinticRange!!
+        quinticRange, quinticRange,
         quarticRange, (quarticRange + 1),
         cubicRange, (cubicRange + 63),
         -1,-1,

@@ -51,7 +51,7 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticLastVLoopResultsConfirmTest) {
 TEST(GpuPolynomialCheckerTestSuite, QuinticFirstVLoopResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new GpuQuinticFirstChecker();
     std::vector<int*> *hits;
-    std::vector<int> *loopRanges = new std::vector<int>{-1,6,-1,6,-1,6,-1,6,-1,1446,-1,-1};
+    std::vector<int> *loopRanges = new std::vector<int>{-1,-1,-1,1446,-1,6,-1,6,-1,6,-1,6};
 
     hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges);
 

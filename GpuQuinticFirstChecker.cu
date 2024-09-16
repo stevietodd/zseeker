@@ -31,16 +31,16 @@ __global__ static void compareToZeta5loop(T *out, const T theConst, const T need
 
     // Handling arbitrary vector size
 	// // note that these loops use <= (less than or EQUAL TO)
-	for (int z = 0; z <= 292; z++) {
+	for (int z = 6; z <= 292; z++) {
 	//for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
 		v0 = coeffArray[z];
 		//printf("%d,", z);
 	
-		for (int y = 0; y <= 1'116; y++) {
+		for (int y = 6; y <= 1'116; y++) {
 		//for (int y = loopStartEnds[2]; y <= loopStartEnds[3]; y++) {
 			v1 = v0 + coeffArray[y] * theConst;
 
-			for (int x = 0; x <= 4'412; x++) {
+			for (int x = 6; x <= 4'412; x++) {
 			//for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
 				v2 = v1 + coeffArray[x] * theConst2;
 
@@ -66,7 +66,7 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 {
     // TODO: This sucks. Change this
     // note that even elements are LUT[0] through LUT[5]
-    int loopStartEnds[12] = {6, 292, 6, 1'116, 6, 4'412, 6, 12'180, 6, 304'468, 6, 1'216'772};
+    int loopStartEnds[12] = {6, 1'216'772, 6, 304'468, 6, 12'180, 6, 4'412, 6, 1'116, 6, 292};
 
 	//TODO: Pass in needle instead of hardcoded use of z5 here!
 	const float z5 = 1.036927755143369926331365486457034168L; //riemann_zetal((long double)5);
