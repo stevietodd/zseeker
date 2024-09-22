@@ -6,7 +6,7 @@
 TEST(CpuPolynomialCheckerTestSuite, QuinticLastVLoopResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticLastChecker();
     std::vector<int*> *hits;
-    std::vector<int> *loopRanges = new std::vector<int>{-1,-1,-1,1446,-1,6,-1,6,-1,6,-1,6};
+    std::vector<int> *loopRanges = new std::vector<int>{-1,6,-1,6,-1,6,-1,-1,-1,-1,-1,-1};
 
     hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges);
 
@@ -142,11 +142,11 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsSameAsNonBreakoutsT
     srand(time(0));
     int quinticRange = rand() % 1'216'773; // = quintic max because we are only doing 1 of these loops
     int quarticRange = rand() % 304'468; // = quartic max minus 1 because we are doing 2 of these loops
-    int cubicRange = rand() % 12'118; // = cubic max minus 63 because we are doing 64 of these loops
+    int cubicRange = rand() % 12'150; // = cubic max minus 31 because we are doing 32 of these loops
     std::vector<int> *loopRanges = new std::vector<int>{
         quinticRange, quinticRange,
         quarticRange, (quarticRange + 1),
-        cubicRange, (cubicRange + 63),
+        cubicRange, (cubicRange + 31),
         -1,-1,
         -1,-1,
         -1,-1
