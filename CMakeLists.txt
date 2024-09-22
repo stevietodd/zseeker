@@ -3,8 +3,6 @@ project(zseeker LANGUAGES CXX) # need this so CMAKE_CXX_COMPILER_ID var will be 
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(CMAKE_CXX_COMPILER_ID="${CMAKE_CXX_COMPILER_ID}") # only added this line to see what it is, can remove
-
 
 include(FetchContent)
 FetchContent_Declare(
@@ -15,6 +13,8 @@ FetchContent_Declare(
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
+
+include(GoogleTest)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   project(zseeker LANGUAGES CUDA CXX)
@@ -39,14 +39,49 @@ add_executable(
 	cudawrapper.hpp
 	checkz3constantswithz5usingLUTandGPU.cu
 )
+
+add_executable(
+  zseeker2
+  main.cpp
+  PolynomialCheckerInterface.hpp
+  CpuPolynomialChecker.hpp
+  CpuQuinticLastChecker.cpp
+  GpuPolynomialChecker.hpp
+  GpuQuinticLastChecker.cu
+  GpuQuinticFirstChecker.cu
+)
+
+add_executable(
+  GpuPolynomialCheckerTestSuite
+  test/GpuPolynomialCheckerTestSuite.cpp
+  GpuQuinticLastChecker.cu
+  GpuQuinticFirstChecker.cu
+)
+target_link_libraries(
+  GpuPolynomialCheckerTestSuite
+  GTest::gtest_main
+)
+
+gtest_discover_tests(GpuPolynomialCheckerTestSuite)
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-steps=1000000000 -O3")
 
   add_executable(
     zseeker
     checkz3constantswithz5usingLUTandCPU.cpp
-    cudawrapper.hpp
+    #cudawrapper.hpp
     #checkz3constantswithz5usingLUTandGPU.cu
+  )
+
+  add_executable(
+    zseeker2
+    main.cpp
+    PolynomialCheckerInterface.hpp
+    CpuPolynomialChecker.hpp
+    CpuQuinticLastChecker.cpp
+    #GpuPolynomialChecker.hpp
+    #GpuQuinticLastChecker.cu
+    #GpuQuinticFirstChecker.cu
   )
 endif()
 
@@ -62,6 +97,11 @@ target_link_libraries(
 )
 
 add_executable(
+  PrintPrecisions
+  PrintPrecisions.cpp
+)
+
+add_executable(
   ArithmeticTestSuite
   test/ArithmeticTestSuite.cpp
 )
@@ -70,11 +110,28 @@ target_link_libraries(
   GTest::gtest_main
 )
 
-include(GoogleTest)
-gtest_discover_tests(PrecisionTestSuite)
-gtest_discover_tests(ArithmeticTestSuite)
+add_executable(
+  LookupTableTestSuite
+  test/LookupTableTestSuite.cpp
+)
+target_link_libraries(
+  LookupTableTestSuite
+  GTest::gtest_main
+)
 
 add_executable(
-  PrintPrecisions
-  PrintPrecisions.cpp
+  CpuPolynomialCheckerTestSuite
+  test/CpuPolynomialCheckerTestSuite.cpp
+  CpuQuinticLastChecker.cpp
+  CpuQuinticFirstChecker.cpp
+  CpuQuinticFirstWithBreakoutsChecker.cpp
 )
+target_link_libraries(
+  CpuPolynomialCheckerTestSuite
+  GTest::gtest_main
+)
+
+gtest_discover_tests(LookupTableTestSuite)
+gtest_discover_tests(PrecisionTestSuite)
+gtest_discover_tests(ArithmeticTestSuite)
+gtest_discover_tests(CpuPolynomialCheckerTestSuite)

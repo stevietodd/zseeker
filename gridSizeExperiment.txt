@@ -1,0 +1,244 @@
+-- analysis
+
+so gridsizes should be (3, 3, 2), I think?
+looks like quint is successfully going from 0 to 8 (9 elements), covers 0 to 6 (needed 7 elements)
+also quart from 0 to 5 (6 elements) which covers 0 to 4 (needed 5)
+also cubic from 0 to 3 (4 elements) which covers 0 to 2 (needed 3)
+	
+216 rows emitted, which makes sense because (3*3)*(3*2)*(2*2) = 216
+
+DOWNSIDE: 216 threads but we really only needed 7*5*3 = 105
+So for first-pass guess of REAL block size (16, 8, 8) for grid size needed loop (1'216'772, 304'468, 12'180) we'd end up with
+a grid size of (76'049, 38'059, 1'523) which means instead of 4,512,301,912,265,280 iterations we'd have 4,513,887,601,656,832
+= (76'049*16)*(38'059*8)*(1'523*8) which is an entire extra 1.5 trillion iterations! Yikes!
+So maybe we want to minimize extra threads at the top-most level, which would then mean our REAL block size should be
+(1, 8, 128) since y needs to at least be 8 to make that loop fit in the max block index of 65,535, and in this scenario
+we'd end up with a grid size of (1'216'773, 38'059, 96) which means 4,552,376,019,222,528...which is way worse. So wrong
+guess there. What if we went the other way and did block size (128, 8, 1)? Grid size becomes (9'507, 38'059, 12'181) and we
+wind up with 4,513,191,554,307,072 iterations which is not that much better but only about .9 trillion extra iterations. I
+guess this is our best answer for now (8/10/2024)
+
+-- actual code
+dim3 blocksizes(3,2,2)
+quintLastIndex = 7;
+quartLastIndex = 5;
+cubicLastIndex = 3;
+dim3 gridsizes((quintLastIndex / blocksizes.x) + 1, (quartLastIndex / blocksizes.y) + 1, (cubicLastIndex / blocksizes.z) + 1);
+
+-- actual program printout
+Quint = 6, quart = 4, cubic = 0. n=7
+Quint = 7, quart = 4, cubic = 0. n=7
+Quint = 8, quart = 4, cubic = 0. n=7
+Quint = 6, quart = 5, cubic = 0. n=7
+Quint = 7, quart = 5, cubic = 0. n=7
+Quint = 8, quart = 5, cubic = 0. n=7
+Quint = 6, quart = 4, cubic = 1. n=7
+Quint = 7, quart = 4, cubic = 1. n=7
+Quint = 8, quart = 4, cubic = 1. n=7
+Quint = 6, quart = 5, cubic = 1. n=7
+Quint = 7, quart = 5, cubic = 1. n=7
+Quint = 8, quart = 5, cubic = 1. n=7
+Quint = 6, quart = 0, cubic = 2. n=7
+Quint = 7, quart = 0, cubic = 2. n=7
+Quint = 8, quart = 0, cubic = 2. n=7
+Quint = 6, quart = 1, cubic = 2. n=7
+Quint = 7, quart = 1, cubic = 2. n=7
+Quint = 8, quart = 1, cubic = 2. n=7
+Quint = 6, quart = 0, cubic = 3. n=7
+Quint = 7, quart = 0, cubic = 3. n=7
+Quint = 8, quart = 0, cubic = 3. n=7
+Quint = 6, quart = 1, cubic = 3. n=7
+Quint = 7, quart = 1, cubic = 3. n=7
+Quint = 8, quart = 1, cubic = 3. n=7
+Quint = 6, quart = 2, cubic = 0. n=7
+Quint = 7, quart = 2, cubic = 0. n=7
+Quint = 8, quart = 2, cubic = 0. n=7
+Quint = 6, quart = 3, cubic = 0. n=7
+Quint = 7, quart = 3, cubic = 0. n=7
+Quint = 8, quart = 3, cubic = 0. n=7
+Quint = 6, quart = 2, cubic = 1. n=7
+Quint = 7, quart = 2, cubic = 1. n=7
+Quint = 8, quart = 2, cubic = 1. n=7
+Quint = 6, quart = 3, cubic = 1. n=7
+Quint = 7, quart = 3, cubic = 1. n=7
+Quint = 8, quart = 3, cubic = 1. n=7
+Quint = 6, quart = 2, cubic = 2. n=7
+Quint = 7, quart = 2, cubic = 2. n=7
+Quint = 8, quart = 2, cubic = 2. n=7
+Quint = 6, quart = 3, cubic = 2. n=7
+Quint = 7, quart = 3, cubic = 2. n=7
+Quint = 8, quart = 3, cubic = 2. n=7
+Quint = 6, quart = 2, cubic = 3. n=7
+Quint = 7, quart = 2, cubic = 3. n=7
+Quint = 8, quart = 2, cubic = 3. n=7
+Quint = 6, quart = 3, cubic = 3. n=7
+Quint = 7, quart = 3, cubic = 3. n=7
+Quint = 8, quart = 3, cubic = 3. n=7
+Quint = 0, quart = 4, cubic = 2. n=7
+Quint = 1, quart = 4, cubic = 2. n=7
+Quint = 2, quart = 4, cubic = 2. n=7
+Quint = 0, quart = 5, cubic = 2. n=7
+Quint = 1, quart = 5, cubic = 2. n=7
+Quint = 2, quart = 5, cubic = 2. n=7
+Quint = 0, quart = 4, cubic = 3. n=7
+Quint = 1, quart = 4, cubic = 3. n=7
+Quint = 2, quart = 4, cubic = 3. n=7
+Quint = 0, quart = 5, cubic = 3. n=7
+Quint = 1, quart = 5, cubic = 3. n=7
+Quint = 2, quart = 5, cubic = 3. n=7
+Quint = 0, quart = 0, cubic = 2. n=7
+Quint = 1, quart = 0, cubic = 2. n=7
+Quint = 2, quart = 0, cubic = 2. n=7
+Quint = 0, quart = 1, cubic = 2. n=7
+Quint = 1, quart = 1, cubic = 2. n=7
+Quint = 2, quart = 1, cubic = 2. n=7
+Quint = 0, quart = 0, cubic = 3. n=7
+Quint = 1, quart = 0, cubic = 3. n=7
+Quint = 2, quart = 0, cubic = 3. n=7
+Quint = 0, quart = 1, cubic = 3. n=7
+Quint = 1, quart = 1, cubic = 3. n=7
+Quint = 2, quart = 1, cubic = 3. n=7
+Quint = 0, quart = 2, cubic = 0. n=7
+Quint = 1, quart = 2, cubic = 0. n=7
+Quint = 2, quart = 2, cubic = 0. n=7
+Quint = 0, quart = 3, cubic = 0. n=7
+Quint = 1, quart = 3, cubic = 0. n=7
+Quint = 2, quart = 3, cubic = 0. n=7
+Quint = 0, quart = 2, cubic = 1. n=7
+Quint = 1, quart = 2, cubic = 1. n=7
+Quint = 2, quart = 2, cubic = 1. n=7
+Quint = 0, quart = 3, cubic = 1. n=7
+Quint = 1, quart = 3, cubic = 1. n=7
+Quint = 2, quart = 3, cubic = 1. n=7
+Quint = 3, quart = 4, cubic = 2. n=7
+Quint = 4, quart = 4, cubic = 2. n=7
+Quint = 5, quart = 4, cubic = 2. n=7
+Quint = 3, quart = 5, cubic = 2. n=7
+Quint = 4, quart = 5, cubic = 2. n=7
+Quint = 5, quart = 5, cubic = 2. n=7
+Quint = 3, quart = 4, cubic = 3. n=7
+Quint = 4, quart = 4, cubic = 3. n=7
+Quint = 5, quart = 4, cubic = 3. n=7
+Quint = 3, quart = 5, cubic = 3. n=7
+Quint = 4, quart = 5, cubic = 3. n=7
+Quint = 5, quart = 5, cubic = 3. n=7
+Quint = 0, quart = 4, cubic = 0. n=7
+Quint = 1, quart = 4, cubic = 0. n=7
+Quint = 2, quart = 4, cubic = 0. n=7
+Quint = 0, quart = 5, cubic = 0. n=7
+Quint = 1, quart = 5, cubic = 0. n=7
+Quint = 2, quart = 5, cubic = 0. n=7
+Quint = 0, quart = 4, cubic = 1. n=7
+Quint = 1, quart = 4, cubic = 1. n=7
+Quint = 2, quart = 4, cubic = 1. n=7
+Quint = 0, quart = 5, cubic = 1. n=7
+Quint = 1, quart = 5, cubic = 1. n=7
+Quint = 2, quart = 5, cubic = 1. n=7
+Quint = 3, quart = 0, cubic = 2. n=7
+Quint = 4, quart = 0, cubic = 2. n=7
+Quint = 5, quart = 0, cubic = 2. n=7
+Quint = 3, quart = 1, cubic = 2. n=7
+Quint = 4, quart = 1, cubic = 2. n=7
+Quint = 5, quart = 1, cubic = 2. n=7
+Quint = 3, quart = 0, cubic = 3. n=7
+Quint = 4, quart = 0, cubic = 3. n=7
+Quint = 5, quart = 0, cubic = 3. n=7
+Quint = 3, quart = 1, cubic = 3. n=7
+Quint = 4, quart = 1, cubic = 3. n=7
+Quint = 5, quart = 1, cubic = 3. n=7
+Quint = 3, quart = 4, cubic = 0. n=7
+Quint = 4, quart = 4, cubic = 0. n=7
+Quint = 5, quart = 4, cubic = 0. n=7
+Quint = 3, quart = 5, cubic = 0. n=7
+Quint = 4, quart = 5, cubic = 0. n=7
+Quint = 5, quart = 5, cubic = 0. n=7
+Quint = 3, quart = 4, cubic = 1. n=7
+Quint = 4, quart = 4, cubic = 1. n=7
+Quint = 5, quart = 4, cubic = 1. n=7
+Quint = 3, quart = 5, cubic = 1. n=7
+Quint = 4, quart = 5, cubic = 1. n=7
+Quint = 5, quart = 5, cubic = 1. n=7
+Quint = 6, quart = 0, cubic = 0. n=7
+Quint = 7, quart = 0, cubic = 0. n=7
+Quint = 8, quart = 0, cubic = 0. n=7
+Quint = 6, quart = 1, cubic = 0. n=7
+Quint = 7, quart = 1, cubic = 0. n=7
+Quint = 8, quart = 1, cubic = 0. n=7
+Quint = 6, quart = 0, cubic = 1. n=7
+Quint = 7, quart = 0, cubic = 1. n=7
+Quint = 8, quart = 0, cubic = 1. n=7
+Quint = 6, quart = 1, cubic = 1. n=7
+Quint = 7, quart = 1, cubic = 1. n=7
+Quint = 8, quart = 1, cubic = 1. n=7
+Quint = 6, quart = 4, cubic = 2. n=7
+Quint = 7, quart = 4, cubic = 2. n=7
+Quint = 8, quart = 4, cubic = 2. n=7
+Quint = 6, quart = 5, cubic = 2. n=7
+Quint = 7, quart = 5, cubic = 2. n=7
+Quint = 8, quart = 5, cubic = 2. n=7
+Quint = 6, quart = 4, cubic = 3. n=7
+Quint = 7, quart = 4, cubic = 3. n=7
+Quint = 8, quart = 4, cubic = 3. n=7
+Quint = 6, quart = 5, cubic = 3. n=7
+Quint = 7, quart = 5, cubic = 3. n=7
+Quint = 8, quart = 5, cubic = 3. n=7
+Quint = 3, quart = 0, cubic = 0. n=7
+Quint = 4, quart = 0, cubic = 0. n=7
+Quint = 5, quart = 0, cubic = 0. n=7
+Quint = 3, quart = 1, cubic = 0. n=7
+Quint = 4, quart = 1, cubic = 0. n=7
+Quint = 5, quart = 1, cubic = 0. n=7
+Quint = 3, quart = 0, cubic = 1. n=7
+Quint = 4, quart = 0, cubic = 1. n=7
+Quint = 5, quart = 0, cubic = 1. n=7
+Quint = 3, quart = 1, cubic = 1. n=7
+Quint = 4, quart = 1, cubic = 1. n=7
+Quint = 5, quart = 1, cubic = 1. n=7
+Quint = 0, quart = 0, cubic = 0. n=7
+Quint = 1, quart = 0, cubic = 0. n=7
+Quint = 2, quart = 0, cubic = 0. n=7
+Quint = 0, quart = 1, cubic = 0. n=7
+Quint = 1, quart = 1, cubic = 0. n=7
+Quint = 2, quart = 1, cubic = 0. n=7
+Quint = 0, quart = 0, cubic = 1. n=7
+Quint = 1, quart = 0, cubic = 1. n=7
+Quint = 2, quart = 0, cubic = 1. n=7
+Quint = 0, quart = 1, cubic = 1. n=7
+Quint = 1, quart = 1, cubic = 1. n=7
+Quint = 2, quart = 1, cubic = 1. n=7
+Quint = 3, quart = 2, cubic = 2. n=7
+Quint = 4, quart = 2, cubic = 2. n=7
+Quint = 5, quart = 2, cubic = 2. n=7
+Quint = 3, quart = 3, cubic = 2. n=7
+Quint = 4, quart = 3, cubic = 2. n=7
+Quint = 5, quart = 3, cubic = 2. n=7
+Quint = 3, quart = 2, cubic = 3. n=7
+Quint = 4, quart = 2, cubic = 3. n=7
+Quint = 5, quart = 2, cubic = 3. n=7
+Quint = 3, quart = 3, cubic = 3. n=7
+Quint = 4, quart = 3, cubic = 3. n=7
+Quint = 5, quart = 3, cubic = 3. n=7
+Quint = 3, quart = 2, cubic = 0. n=7
+Quint = 4, quart = 2, cubic = 0. n=7
+Quint = 5, quart = 2, cubic = 0. n=7
+Quint = 3, quart = 3, cubic = 0. n=7
+Quint = 4, quart = 3, cubic = 0. n=7
+Quint = 5, quart = 3, cubic = 0. n=7
+Quint = 3, quart = 2, cubic = 1. n=7
+Quint = 4, quart = 2, cubic = 1. n=7
+Quint = 5, quart = 2, cubic = 1. n=7
+Quint = 3, quart = 3, cubic = 1. n=7
+Quint = 4, quart = 3, cubic = 1. n=7
+Quint = 5, quart = 3, cubic = 1. n=7
+Quint = 0, quart = 2, cubic = 2. n=7
+Quint = 1, quart = 2, cubic = 2. n=7
+Quint = 2, quart = 2, cubic = 2. n=7
+Quint = 0, quart = 3, cubic = 2. n=7
+Quint = 1, quart = 3, cubic = 2. n=7
+Quint = 2, quart = 3, cubic = 2. n=7
+Quint = 0, quart = 2, cubic = 3. n=7
+Quint = 1, quart = 2, cubic = 3. n=7
+Quint = 2, quart = 2, cubic = 3. n=7
+Quint = 0, quart = 3, cubic = 3. n=7
+Quint = 1, quart = 3, cubic = 3. n=7
+Quint = 2, quart = 3, cubic = 3. n=7
