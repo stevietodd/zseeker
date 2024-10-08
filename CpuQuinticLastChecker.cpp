@@ -9,13 +9,6 @@ char* getCurrentTimeString() {
 	return std::asctime(std::localtime(&currTime));
 }
 
-void printHit(int i5, int i4, int i3, int i2, int i1, int i0)
-{
-	std::cout << "(" << i5 << "," << i4 << "," << i3 << "," << i2 << "," << i1 << "," << i0 << "): " <<
-		LUT[i5] << "c^5 + " << LUT[i4] << "c^4 + " << LUT[i3] << "c^3 + " << LUT[i2] << "c^2 + " <<
-		LUT[i1] << "c + " << LUT[i0] << " = HIT!\n";
-}
-
 std::vector<int*>* CpuQuinticLastChecker::findHits(
             const float needle,
             const float theConst,
@@ -82,10 +75,10 @@ std::vector<int*>* CpuQuinticLastChecker::findHits(
                             // mimic how the Gpu checker does it
 
                             if (FLOAT_BASICALLY_EQUAL(LUT[u] * theConst5, (needle - v4))) {
-                                printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=%10.10lf,v4=%10.10lf,(needle-v4)=%10.10lf,diff=%10.10lf\n", LUT[u], theConst5, needle, v4, (needle-v4), ((LUT[u] * theConst5) - (needle-v4)));
+                                //printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=%10.10lf,v4=%10.10lf,(needle-v4)=%10.10lf,diff=%10.10lf\n", LUT[u], theConst5, needle, v4, (needle-v4), ((LUT[u] * theConst5) - (needle-v4)));
                                 hit = new int[6] {u, v, w, x, y, z};
                                 hits->push_back(hit);
-                                printHit(u,v,w,x,y,z);
+                                printHit(LUT.data(), u,v,w,x,y,z);
                             }
                         }
                     }

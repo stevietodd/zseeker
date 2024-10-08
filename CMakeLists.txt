@@ -62,6 +62,9 @@ target_link_libraries(
   GTest::gtest_main
 )
 
+# Uncomment the below out to see detailed register and memory information for CUDA compilation
+#target_compile_options(GpuPolynomialCheckerTestSuite PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:--ptxas-options=-v>)
+
 gtest_discover_tests(GpuPolynomialCheckerTestSuite)
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-steps=1000000000 -O3")

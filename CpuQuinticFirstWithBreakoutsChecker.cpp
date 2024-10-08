@@ -139,7 +139,7 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
 						        //     LUT[w], LUT[x], LUT[y], LUT[z]);
                                 hit = new int[6] {u, v, w, x, y, z};
                                 hits->push_back(hit);
-                                //printHit(u,v,w,x,y,z);
+                                //printHit(LUT.data(), u,v,w,x,y,z);
                             }
                         }
                     }

@@ -103,7 +103,7 @@ TEST(CpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {
     //EXPECT_EQ(0, hits->at(27)); TODO Check some actual results
 }
 
-TEST(CpuPolynomialCheckerTestSuite, QuinticFirstVLoopResultsConfirmTest) {
+TEST(CpuPolynomialCheckerTestSuite, QuinticFirstOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticFirstChecker();
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{-1,-1,-1,1446,-1,6,-1,6,-1,6,-1,6};
@@ -142,7 +142,7 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstVLoopResultsConfirmTest) {
     }
 }
 
-TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsVLoopResultsConfirmTest) {
+TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticFirstWithBreakoutsChecker();
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{-1,-1,-1,1446,-1,6,-1,6,-1,6,-1,6};
