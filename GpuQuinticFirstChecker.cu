@@ -8,19 +8,22 @@ using namespace std;
 
 // calculates val * [vector elems] and returns if close enough to needle
 template<typename T>
-__global__ static void compareToZeta5loop(T *out, const T theConst, const T needle, const T *coeffArray, int n, int *hitCount, const int *loopStartEnds) {
+__global__ static void compareToZeta5loop(T *out, const T theConst, const T needle, const T *coeffArray, const int *loopStartEnds, int *hitCount) {
 	const float theConst2 = pow(theConst, (float)2);
 	float v0, v1, v2;
-	const int quintInd = blockIdx.x * blockDim.x + threadIdx.x;
-	const int quartInd = blockIdx.y * blockDim.y + threadIdx.y;
-	const int cubicInd = blockIdx.z * blockDim.z + threadIdx.z;
-	const int zEnd = loopStartEnds[11];
-	const int zStart = loopStartEnds[10];
+//printf("hi\n");
+	// NOTE that we add 6 to these since our coeffArray starts at 6 in its current design
+	const int quintInd = blockIdx.x * blockDim.x + threadIdx.x + 6;
+	const int quartInd = blockIdx.y * blockDim.y + threadIdx.y + 6;
+	const int cubicInd = blockIdx.z * blockDim.z + threadIdx.z + 6;
+//int loopStartEnds[12] = {6, 7, 6, 7, 6, 7, 6, 4'412, 6, 1'116, 6, 292}; // TODO: REMOVE and add param back!
+	// const int zEnd = loopStartEnds[11];
+	// const int zStart = loopStartEnds[10];
 	const int yEnd = loopStartEnds[9];
 	const int yStart = loopStartEnds[8];
 	const int xEnd = loopStartEnds[7];
 	const int xStart = loopStartEnds[6];
-
+//printf("Quint = %d, quart = %d, cubic = %d. n=%d\n", quintInd, quartInd, cubicInd, n);
 	// breakout
 	if (quintInd >= loopStartEnds[1] || quartInd >= loopStartEnds[3] || cubicInd >= loopStartEnds[5]) {
 		return;
@@ -32,12 +35,14 @@ __global__ static void compareToZeta5loop(T *out, const T theConst, const T need
     //T expr;
 	//register int i;
 	// if (quartInd % 60000 == 0 && cubicInd % 60000 == 0) {
-	//printf("Quint = %d, quart = %d, cubic = %d. n=%d\n", quintInd, quartInd, cubicInd, n);
+//	printf("Quint = %d, quart = %d, cubic = %d. n=%d\n", quintInd, quartInd, cubicInd, n);
 	// }
+
+// BIG TODO! these loops should be calculating z (0 power) innermost, not outermost!
 
     // Handling arbitrary vector size
 	// // note that these loops use <= (less than or EQUAL TO)
-	for (int z = zStart; z <= zEnd; z++) {
+	for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
 	//for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
 		v0 = coeffArray[z];
 		//printf("%d,", z);
@@ -51,9 +56,10 @@ __global__ static void compareToZeta5loop(T *out, const T theConst, const T need
 				v2 = v1 + coeffArray[x] * theConst2;
 
 				if (FLOAT_BASICALLY_EQUAL((topThreeTerms + v2), needle)) {
-					printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
-						quintInd, quartInd, cubicInd, x, y, z, coeffArray[quintInd], coeffArray[quartInd],
-						coeffArray[cubicInd], coeffArray[x], coeffArray[y], coeffArray[z]);
+					printf("hit\n");
+					// printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
+					// 	quintInd, quartInd, cubicInd, x, y, z, coeffArray[quintInd], coeffArray[quartInd],
+					// 	coeffArray[cubicInd], coeffArray[x], coeffArray[y], coeffArray[z]);
 					// i = atomicAdd(hitCount, 1);
 					// out[i] = tid; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]		
 				}
@@ -113,7 +119,7 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 
 	int h_hitCount = 0;
 	int *d_hitCount = 0;
-	cudaMalloc((void**) &d_hitCount, sizeof(int) );
+	cudaMalloc((void**) &d_hitCount, sizeof(int));
 	cudaMemcpy(d_hitCount, &h_hitCount , sizeof(int), cudaMemcpyHostToDevice);
 
 	// initialize output array
@@ -145,8 +151,8 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 	cout << gridsizes.x << "," << gridsizes.y << "," << gridsizes.z << "\n";
 
 	// Execute kernel
-	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst, z5, d_coeffArray, quintLastIndex, d_hitCount, d_loopStartEnds);
-
+	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst, z5, d_coeffArray, d_loopStartEnds, d_hitCount);
+cout << cudaPeekAtLastError() << endl;
 	// Transfer data back to host memory
 	cudaMemcpy(&h_hitCount , d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
 	cudaMemcpy(out, d_out, sizeof(int) * quintLastIndex, cudaMemcpyDeviceToHost);
