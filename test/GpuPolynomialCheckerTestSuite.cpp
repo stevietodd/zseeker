@@ -4,7 +4,7 @@
 #include "../lookupTable.hpp"
 #include <cstring>
 
-TEST(GpuPolynomialCheckerTestSuite, QuinticLastVLoopResultsConfirmTest) {
+TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new GpuQuinticLastChecker();
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{-1,-1,-1,1446,-1,6,-1,6,-1,6,-1,6};
@@ -48,10 +48,10 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticLastVLoopResultsConfirmTest) {
 */
 }
 
-TEST(GpuPolynomialCheckerTestSuite, QuinticFirstVLoopResultsConfirmTest) {
+TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new GpuQuinticFirstChecker();
     std::vector<int*> *hits;
-    std::vector<int> *loopRanges = new std::vector<int>{-1,-1,-1,1446,-1,6,-1,6,-1,6,-1,6};
+    std::vector<int> *loopRanges = new std::vector<int>{6,7,6,7,6,7,-1,-1,-1,-1,-1,-1};
 
     hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges);
 

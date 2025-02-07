@@ -38,7 +38,7 @@ bool InitCUDA(bool b) {
 }
 
 template<typename T>
-void printHit(int i5, int i4, const T cubicSum, const T *coeffArray)
+void printMyHit(int i5, int i4, const T cubicSum, const T *coeffArray)
 {
 	cout << "(" << i5 << "," << i4 << ",?,?,?,?): " <<
 		coeffArray[i5] << "c^5 + " << coeffArray[i4] << "c^4 + " << cubicSum << "= HIT!\n";
@@ -115,9 +115,9 @@ cout << cons << "," << consFourth << "," << consFifth << endl;
 	cout << h_hitCount << endl;
 
 	for (int j = 0; j < h_hitCount; j++) {
-		// TODO: Update these lines! Second param in printHit and first array value in pushback was i but I haven't figured out how to tie those together now
+		// TODO: Update these lines! Second param in printMyHit and first array value in pushback was i but I haven't figured out how to tie those together now
 		// TODO: Also this should be using the out variable, not just the j-indices duh
-		printHit(j, j, cubicSum, coeffArray);
+		printMyHit(j, j, cubicSum, coeffArray);
 		results->push_back(new int[2] {j, j});
 	}
 
