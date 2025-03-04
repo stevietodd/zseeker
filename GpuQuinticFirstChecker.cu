@@ -97,8 +97,6 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
         }
     }
 
-	//TODO: Pass in needle instead of hardcoded use of z5 here!
-	const float z5 = 1.036927755143369926331365486457034168L; //riemann_zetal((long double)5);
 	float currentQuart;
 	float quarticSum;
 	const float theConst2 = powl(theConst, (float)2);
@@ -151,7 +149,7 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 	cout << gridsizes.x << "," << gridsizes.y << "," << gridsizes.z << "\n";
 
 	// Execute kernel
-	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst, z5, d_coeffArray, d_loopStartEnds, d_hitCount);
+	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst, theConst, d_coeffArray, d_loopStartEnds, d_hitCount);
 cout << cudaPeekAtLastError() << endl;
 	// Transfer data back to host memory
 	cudaMemcpy(&h_hitCount , d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
