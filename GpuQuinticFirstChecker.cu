@@ -55,7 +55,7 @@ __global__ static void compareToZeta5loop(T *out, const T theConst, const T need
 			//for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
 				v2 = v1 + coeffArray[x] * theConst2;
 
-				if (FLOAT_BASICALLY_EQUAL((topThreeTerms + v2), needle)) {
+				if (FLOAT_BASICALLY_EQUAL_DEFAULT((topThreeTerms + v2), needle)) {
 					printf("hit\n");
 					// printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
 					// 	quintInd, quartInd, cubicInd, x, y, z, coeffArray[quintInd], coeffArray[quartInd],

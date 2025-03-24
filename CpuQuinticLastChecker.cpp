@@ -74,7 +74,7 @@ std::vector<int*>* CpuQuinticLastChecker::findHits(
                             // note that we don't use a v5 variable anymore and compare directly to (needle - v4) to
                             // mimic how the Gpu checker does it
 
-                            if (FLOAT_BASICALLY_EQUAL(LUT[u] * theConst5, (needle - v4))) {
+                            if (FLOAT_BASICALLY_EQUAL_DEFAULT(LUT[u] * theConst5, (needle - v4))) {
                                 //printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=%10.10lf,v4=%10.10lf,(needle-v4)=%10.10lf,diff=%10.10lf\n", LUT[u], theConst5, needle, v4, (needle-v4), ((LUT[u] * theConst5) - (needle-v4)));
                                 hit = new int[6] {u, v, w, x, y, z};
                                 hits->push_back(hit);

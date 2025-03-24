@@ -133,7 +133,7 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
                         for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
                             v0 = v1 + LUT[z];
 
-                            if (FLOAT_BASICALLY_EQUAL(v0, needle)) {
+                            if (FLOAT_BASICALLY_EQUAL_DEFAULT(v0, needle)) {
                                 // printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
 						        //     u, v, w, x, y, z, LUT[u], LUT[v],
 						        //     LUT[w], LUT[x], LUT[y], LUT[z]);
