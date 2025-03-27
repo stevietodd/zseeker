@@ -49,7 +49,7 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
 }
 
 /*
- * Takes about 163 seconds on linux box, 727 results
+ * Takes about 163 seconds on linux box, 727 results. Much slower than CPU so that's not swell
  */
 TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new GpuQuinticFirstChecker();
