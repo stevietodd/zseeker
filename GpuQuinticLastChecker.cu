@@ -16,7 +16,7 @@ __global__ static void compareToZeta5(T *out, const T val, const T needle, const
 
     // Handling arbitrary vector size
     if (tid < n){
-		if (FLOAT_BASICALLY_EQUAL(coeffArray[tid] * val, needle)) {
+		if (FLOAT_BASICALLY_EQUAL_DEFAULT(coeffArray[tid] * val, needle)) {
 			// printf("LUT[this]=%10.10lf,theConst5=%10.10lf,needle=?,v4=?,(needle-v4)=%10.10lf\n", coeffArray[tid], val, needle);
 			// printf(
 			// 	"Hit found in block %d, thread %d: %f + coeffArray[%d]*c^5 (%f) within %f\n",

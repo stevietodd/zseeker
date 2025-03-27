@@ -8,7 +8,7 @@ using namespace std;
 
 // calculates val * [vector elems] and returns if close enough to needle
 template<typename T>
-__global__ static void compareToZeta5loop(T *out, const T theConst, const T needle, const T *coeffArray, const int *loopStartEnds, int *hitCount) {
+__global__ static void compareToZeta5loop(int *out, const T theConst, const T needle, const T *coeffArray, const int *loopStartEnds, int *hitCount) {
 	const float theConst2 = pow(theConst, (float)2);
 	float v0, v1, v2;
 //printf("hi\n");
@@ -23,9 +23,10 @@ __global__ static void compareToZeta5loop(T *out, const T theConst, const T need
 	const int yStart = loopStartEnds[8];
 	const int xEnd = loopStartEnds[7];
 	const int xStart = loopStartEnds[6];
-//printf("Quint = %d, quart = %d, cubic = %d. n=%d\n", quintInd, quartInd, cubicInd, n);
+//printf("Quint = %d, quart = %d, cubic = %d\n", quintInd, quartInd, cubicInd);
+//printf("xEnd = %d, yEnd = %d, zEnd = %d\n", xEnd, yEnd, loopStartEnds[11]);
 	// breakout
-	if (quintInd >= loopStartEnds[1] || quartInd >= loopStartEnds[3] || cubicInd >= loopStartEnds[5]) {
+	if (quintInd > loopStartEnds[1] || quartInd > loopStartEnds[3] || cubicInd > loopStartEnds[5]) {
 		return;
 	}
 
@@ -33,11 +34,11 @@ __global__ static void compareToZeta5loop(T *out, const T theConst, const T need
 		+ (coeffArray[quartInd] * pow(theConst, (float)4))
 		+ (coeffArray[cubicInd] * pow(theConst, (float)3));
     //T expr;
-	//register int i;
+	register int i;
 	// if (quartInd % 60000 == 0 && cubicInd % 60000 == 0) {
-//	printf("Quint = %d, quart = %d, cubic = %d. n=%d\n", quintInd, quartInd, cubicInd, n);
+	//printf("Quint = %d, quart = %d, cubic = %d\n", quintInd, quartInd, cubicInd);
 	// }
-
+//printf("%f\n", topThreeTerms);
 // BIG TODO! these loops should be calculating z (0 power) innermost, not outermost!
 
     // Handling arbitrary vector size
@@ -55,13 +56,18 @@ __global__ static void compareToZeta5loop(T *out, const T theConst, const T need
 			//for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
 				v2 = v1 + coeffArray[x] * theConst2;
 
-				if (FLOAT_BASICALLY_EQUAL((topThreeTerms + v2), needle)) {
-					printf("hit\n");
+				if (FLOAT_BASICALLY_EQUAL_DEFAULT((topThreeTerms + v2), needle)) {
 					// printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
 					// 	quintInd, quartInd, cubicInd, x, y, z, coeffArray[quintInd], coeffArray[quartInd],
 					// 	coeffArray[cubicInd], coeffArray[x], coeffArray[y], coeffArray[z]);
-					// i = atomicAdd(hitCount, 1);
-					// out[i] = tid; //TODO: MAKE THIS ATOMIC AND DYNAMIC instead of only populating "matching" coeffs in array [0, 0, HIT, 0, 0, 0, HIT, etc.]		
+					i = atomicAdd(hitCount, 1);
+					out[6*i] = quintInd;
+					out[(6*i) + 1] = quartInd;
+					out[(6*i) + 2] = cubicInd;
+					out[(6*i) + 3] = x;
+					out[(6*i) + 4] = y;
+					out[(6*i) + 5] = z;
+					//printf("hit, i=%d\n", i);
 				}
 			}
 		}
@@ -79,6 +85,9 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
     // TODO: This sucks. Change this
     // note that even elements are LUT[0] through LUT[5]
     int loopStartEnds[12] = {6, 1'216'772, 6, 304'468, 6, 12'180, 6, 4'412, 6, 1'116, 6, 292};
+
+	// TODO: This also sucks. Change this
+	int coeffArraySize = 1'216'772;
 
 // 9/22/24 !NOTE! We ignore looprange starts on the Gpu (even numbered indices) and only care about ends (odds)
 	//TODO: Use degree for way more things than just processing loopRanges
@@ -108,9 +117,10 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 	const int cubicLastIndex = loopStartEnds[5];
 	std::vector<int*> *results = new std::vector<int*>();
 
-	float *d_coeffArray, *d_out;
+	float *d_coeffArray;
+	int *d_out;
 	int *d_loopStartEnds;
-	int *out = new int[quintLastIndex];
+	int *out = new int[coeffArraySize];  //NOTE! I'm making this way too large but also using 6 spots for each result returned
 
 	typedef std::numeric_limits< float > ldbl;
 	cout.precision(ldbl::max_digits10);
@@ -121,19 +131,19 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 	cudaMemcpy(d_hitCount, &h_hitCount , sizeof(int), cudaMemcpyHostToDevice);
 
 	// initialize output array
-	for (int o = 0; o < quintLastIndex; o++) {
+	for (int o = 0; o < coeffArraySize; o++) {
 		out[o] = 0;
 	}
 
 	// Allocate device memory 
-    cudaMalloc((void**)&d_coeffArray, sizeof(float) * quintLastIndex);
-    cudaMalloc((void**)&d_out, sizeof(int) * quintLastIndex);		//TODO: Can probably make this 10% as large as quintLastIndex??
+    cudaMalloc((void**)&d_coeffArray, sizeof(float) * coeffArraySize);
+    cudaMalloc((void**)&d_out, sizeof(int) * coeffArraySize);		//TODO: Can probably make this 10% as large as quintLastIndex??
 	cudaMalloc((void**)&d_loopStartEnds, sizeof(int) * 12);
 
 	cout << "dog\n";
 
 	// Transfer data from host to device memory
-    cudaMemcpy(d_coeffArray, coeffArray, sizeof(float) * quintLastIndex, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_coeffArray, coeffArray, sizeof(float) * coeffArraySize, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_loopStartEnds, loopStartEnds, sizeof(int) * 12, cudaMemcpyHostToDevice);
 
 	cout << "cat\n";
@@ -149,21 +159,19 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 	cout << gridsizes.x << "," << gridsizes.y << "," << gridsizes.z << "\n";
 
 	// Execute kernel
-	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst, theConst, d_coeffArray, d_loopStartEnds, d_hitCount);
+	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst, needle, d_coeffArray, d_loopStartEnds, d_hitCount);
 cout << cudaPeekAtLastError() << endl;
 	// Transfer data back to host memory
 	cudaMemcpy(&h_hitCount , d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
-	cudaMemcpy(out, d_out, sizeof(int) * quintLastIndex, cudaMemcpyDeviceToHost);
+	cudaMemcpy(out, d_out, sizeof(int) * coeffArraySize, cudaMemcpyDeviceToHost);
 
 	cout << h_hitCount << endl;
 	cout << "YOOOO!" << endl;
 
-	// for (int j = 0; j < h_hitCount; j++) {
-	// 	// TODO: Update these lines! Second param in printHit and first array value in pushback was i but I haven't figured out how to tie those together now
-	// 	// TODO: Also this should be using the out variable, not just the j-indices duh
-	// 	printHit(j, j, cubicSum, coeffArray);
-	// 	results->push_back(new int[2] {j, j});
-	// }
+	for (int j = 0; j < h_hitCount; j++) {
+		//printHit(coeffArray, out[6*j], out[6*j+1], out[6*j+2], out[6*j+3], out[6*j+4], out[6*j+5]);
+		results->push_back(new int[6] {out[6*j], out[6*j+1], out[6*j+2], out[6*j+3], out[6*j+4], out[6*j+5]});
+	}
 
 	//cout << i << "\n";
     
