@@ -58,6 +58,12 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
 	const float theConst3 = powl(theConst, (float)3);
 	const float theConst4 = powl(theConst, (float)4);
 	const float theConst5 = powl(theConst, (float)5);
+	float maxValue = 0, floatTol = FLOAT_POS_ERROR_DEFAULT;
+	double doubleTol = DOUBLE_POS_ERROR_DEFAULT;
+	const double theConst2d = powl(theConst, (double)2);
+	const double theConst3d = powl(theConst, (double)3);
+	const double theConst4d = powl(theConst, (double)4);
+	const double theConst5d = powl(theConst, (double)5);
 
     float v0, v1, v2, v3, v4, v5;
     int *hit;
@@ -67,12 +73,17 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
     // note that these loops use <= (less than or EQUAL TO)
     for (int u = loopStartEnds[0]; u <= loopStartEnds[1]; u++) {
         v5 = LUT[u] * theConst5;
+        maxValue = abs(v5);
 
         for (int v = loopStartEnds[2]; v <= loopStartEnds[3]; v++) {
-            v4 = v5 + LUT[v] * theConst4;
+			v4 = v5 + LUT[v] * theConst4;
+			maxValue = std::max({maxValue, abs(v4), abs(LUT[v]), abs(theConst4), abs(v4 - v5)});
 
             for (int w = loopStartEnds[4]; w <= loopStartEnds[5]; w++) {
 				v3 = v4 + LUT[w] * theConst3;
+				maxValue = std::max({maxValue, abs(v3), abs(LUT[w]), abs(theConst3), abs(v3 - v4)});
+				floatTol = getFloatPrecisionBasedOnMaxValue(maxValue);
+				doubleTol = getDoublePrecisionBasedOnMaxValue(maxValue);
                 
                 for (int x = loopStartEnds[6]; x <= loopStartEnds[7]; x++) {
 				    v2 = v3 + LUT[x] * theConst2;
@@ -83,13 +94,16 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
                         for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
                             v0 = v1 + LUT[z];
 
-                            if (FLOAT_BASICALLY_EQUAL_DEFAULT(v0, needle)) {
-                                // printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
-						        //     u, v, w, x, y, z, LUT[u], LUT[v],
-						        //     LUT[w], LUT[x], LUT[y], LUT[z]);
+                            if (FLOAT_BASICALLY_EQUAL(v0, needle, floatTol)) {
+								// TODO: Increment counter of float hits
                                 hit = new int[6] {u, v, w, x, y, z};
                                 hits->push_back(hit);
+								printf("double first two here is %10.10lf and %10.10lf\n", doubleLUT[u], doubleLUT[v]);
                                 //printHit(LUT.data(), u,v,w,x,y,z);
+								if (DOUBLE_BASICALLY_EQUAL(v0, needle, doubleTol)) {
+									// TODO: These are the real hits!
+									printf("Real hit!\n");
+								}
                             }
                         }
                     }

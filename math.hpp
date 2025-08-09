@@ -14,6 +14,8 @@
 #define FLOAT_BASICALLY_EQUAL_DEFAULT(f1,f2) ((f1 - f2) >= FLOAT_NEG_ERROR_DEFAULT && (f1 - f2) <= FLOAT_POS_ERROR_DEFAULT)
 #define FLOAT_BASICALLY_EQUAL(f1,f2,tolerance) ((f1 - f2) >= -tolerance && (f1 - f2) <= tolerance)
 
+#define MAX3(a, b, c) ((a) > (b) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
+
 #define ZETA2 1.64493406684822643647
 #define ZETA4 1.08232323371113819152
 #define ZETA5 1.03692775514336992633 // 1.036927755143369926331365486457034168L
