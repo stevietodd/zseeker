@@ -15,17 +15,18 @@ inline constexpr auto LUT = []
     constexpr auto LUT_LoopSize = 1000;
     //std::array<ResultT, (LUT_LoopSize*LUT_LoopSize*2)> arr = {};
 	//ResultT arr[1'216'773] {0};					//TODO THIS IS WHERE I LEFT OFF 6/6/23
-	std::array<float, (1'216'773)> arr = {};
-	
+	//std::array<float, (1'216'773)> arr = {};
+	std::array<float, (608'390)> arr = {};
+
 	// I'm having trouble figuring out how to save off the cutoff15, cutoff30, etc.
 	// variables separately so I'm hacking this up and making the resulting lookup table
 	// start with the 6 cutoff values I'm looking for. Hence why pos starts at 6. In other words:
-	// LUT[0] = cutoff15 = 292 (so array size needs to be 293)
-	// LUT[1] = cutoff30 = 1,116 (so 1,117)
-	// LUT[2] = cutoff60 = 4,412 (so 4,413)
-	// LUT[3] = cutoff100 = 12,180 (so 12,181)
-	// LUT[4] = cutoff500 = 304,468 (so 304,469)
-	// LUT[5] = cutoff1000 = actualSize = 1,216,772 (so 1,216,773)
+	// LUT[0] = cutoff15 = 149 (so 150) only positives, all 292 (so array size needs to be 293)
+	// LUT[1] = cutoff30 = 561 (so 562) only positives, all 1,116 (so 1,117)
+	// LUT[2] = cutoff60 = 2,209 (so 2,210) only positives, all 4,412 (so 4,413)
+	// LUT[3] = cutoff100 = 6,093 (so 6,094) only positives, all 12,180 (so 12,181)
+	// LUT[4] = cutoff500 = 152,237 (so 152,238) only positives, all 304,468 (so 304,469)
+	// LUT[5] = cutoff1000 = actualSize = 608,389 (so 608,390) only positives, all 1,216,772 (so 1,216,773)
 	// LUT[6] = 0;
 	// LUT[7] = 1;
 	// LUT[8] = -1;
@@ -37,7 +38,7 @@ inline constexpr auto LUT = []
 
 	// store 1 and -1 separately
 	arr[pos++] = f(1,1);
-	arr[pos++] = f(-1,1);
+	//arr[pos++] = f(-1,1);
 
     for (int i = 2; i <= LUT_LoopSize; i++)
     {
@@ -48,9 +49,9 @@ inline constexpr auto LUT = []
 			}
 
 			arr[pos++] = f(j,i);
-			arr[pos++] = f(-j,i);
+			//arr[pos++] = f(-j,i);
 			arr[pos++] = f(i,j);
-			arr[pos++] = f(-i,j);
+			//arr[pos++] = f(-i,j);
 		}
         
 		// note we subtract 1 from pos because we've already incremented it
