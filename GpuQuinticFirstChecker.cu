@@ -11,11 +11,10 @@ template<typename T>
 __global__ static void compareToZeta5loop(int *out, const T theConst, const T needle, const T *coeffArray, const int *loopStartEnds, int *hitCount) {
 	const float theConst2 = pow(theConst, (float)2);
 	float v0, v1, v2;
-//printf("hi\n");
-	// NOTE that we add 6 to these since our coeffArray starts at 6 in its current design
-	const int quintInd = blockIdx.x * blockDim.x + threadIdx.x + 6;
-	const int quartInd = blockIdx.y * blockDim.y + threadIdx.y + 6;
-	const int cubicInd = blockIdx.z * blockDim.z + threadIdx.z + 6;
+// printf("hi\n");
+	const int quintInd = blockIdx.x * blockDim.x + threadIdx.x;
+	const int quartInd = blockIdx.y * blockDim.y + threadIdx.y;
+	const int cubicInd = blockIdx.z * blockDim.z + threadIdx.z;
 //int loopStartEnds[12] = {6, 7, 6, 7, 6, 7, 6, 4'412, 6, 1'116, 6, 292}; // TODO: REMOVE and add param back!
 	// const int zEnd = loopStartEnds[11];
 	// const int zStart = loopStartEnds[10];
@@ -23,8 +22,8 @@ __global__ static void compareToZeta5loop(int *out, const T theConst, const T ne
 	const int yStart = loopStartEnds[8];
 	const int xEnd = loopStartEnds[7];
 	const int xStart = loopStartEnds[6];
-//printf("Quint = %d, quart = %d, cubic = %d\n", quintInd, quartInd, cubicInd);
-//printf("xEnd = %d, yEnd = %d, zEnd = %d\n", xEnd, yEnd, loopStartEnds[11]);
+// printf("Quint = %d, quart = %d, cubic = %d\n", quintInd, quartInd, cubicInd);
+// printf("xEnd = %d, yEnd = %d, zEnd = %d\n", xEnd, yEnd, loopStartEnds[11]);
 	// breakout
 	if (quintInd > loopStartEnds[1] || quartInd > loopStartEnds[3] || cubicInd > loopStartEnds[5]) {
 		return;
@@ -36,25 +35,25 @@ __global__ static void compareToZeta5loop(int *out, const T theConst, const T ne
     //T expr;
 	register int i;
 	// if (quartInd % 60000 == 0 && cubicInd % 60000 == 0) {
-	//printf("Quint = %d, quart = %d, cubic = %d\n", quintInd, quartInd, cubicInd);
+	// printf("Quint = %d, quart = %d, cubic = %d\n", quintInd, quartInd, cubicInd);
 	// }
-//printf("%f\n", topThreeTerms);
+// printf("%f\n", topThreeTerms);
 // BIG TODO! these loops should be calculating z (0 power) innermost, not outermost!
 
     // Handling arbitrary vector size
 	// // note that these loops use <= (less than or EQUAL TO)
 	for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
 	//for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
-		v0 = coeffArray[z];
+		v0 = (z < 0) ? -coeffArray[-z] : coeffArray[z];
 		//printf("%d,", z);
 	
 		for (int y = yStart; y <= yEnd; y++) {
 		//for (int y = loopStartEnds[2]; y <= loopStartEnds[3]; y++) {
-			v1 = v0 + coeffArray[y] * theConst;
+			v1 = v0 + ((y < 0) ? -coeffArray[-y] : coeffArray[y]) * theConst;
 
 			for (int x = xStart; x <= xEnd; x++) {
 			//for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
-				v2 = v1 + coeffArray[x] * theConst2;
+				v2 = v1 + ((x < 0) ? -coeffArray[-x] : coeffArray[x]) * theConst2;
 
 				if (FLOAT_BASICALLY_EQUAL_DEFAULT((topThreeTerms + v2), needle)) {
 					// printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
@@ -82,12 +81,12 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
             const std::vector<int> *loopRanges
 )
 {
-    // TODO: This sucks. Change this
-    // note that even elements are LUT[0] through LUT[5]
-    int loopStartEnds[12] = {6, 1'216'772, 6, 304'468, 6, 12'180, 6, 4'412, 6, 1'116, 6, 292};
+    // Updated loop boundaries to match checkz3constantswithz5usingLUTandCPU::main
+    // note that these are now negative to positive ranges instead of starting from 6
+    int loopStartEnds[12] = {-608'383, 608'383, -152'231, 152'231, -6'087, 6'087, -2'203, 2'203, -555, 555, -143, 143};
 
 	// TODO: This also sucks. Change this
-	int coeffArraySize = 1'216'772;
+	int coeffArraySize = 608'384;
 
 // 9/22/24 !NOTE! We ignore looprange starts on the Gpu (even numbered indices) and only care about ends (odds)
 	//TODO: Use degree for way more things than just processing loopRanges
@@ -98,7 +97,7 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
         // loopRanges must have (2*(degree+1)) elements. Format is [zStart, zEnd, yStart, yEnd, ...]
         for (int loopRangeInd = 0; loopRangeInd < (2*(degree+1)); loopRangeInd++) {
             //TODO: Make this not so hacky and stupid
-            if (loopRanges->at(loopRangeInd) >= 0) {
+            if (loopRanges->at(loopRangeInd) < USE_DEFAULT) {
                 // they are setting a non-default value, so update loopStartEnds
                 loopStartEnds[loopRangeInd] = loopRanges->at(loopRangeInd);
                 std::cout << "WARNING: You have set a non-standard loop range. Your search may be incomplete" << std::endl;
@@ -204,36 +203,4 @@ cout << cudaPeekAtLastError() << endl;
     //         }
     //     }
     // }
-
-    // const float theConst2 = powl(theConst, (float)2);
-	// const float theConst3 = powl(theConst, (float)3);
-	// const float theConst4 = powl(theConst, (float)4);
-	// const float theConst5 = powl(theConst, (float)5);
-
-    // float v0, v1, v2, v3, v4, v5, *hit;
-
-    // std::vector<int*> *hits = new std::vector<int*>();
-
-    // // note that these loops use <= (less than or EQUAL TO)
-    // for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
-	// 	v0 = coeffArray[z];
-	
-	// 	for (int y = loopStartEnds[2]; y <= loopStartEnds[3]; y++) {
-	// 		v1 = v0 + coeffArray[y] * theConst;
-
-	// 		for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
-	// 			v2 = v1 + coeffArray[x] * theConst2;
-
-	// 			for (int w = loopStartEnds[6]; w <= loopStartEnds[7]; w++) {
-	// 				printf("dog\n");
-	// 				v3 = v2 + coeffArray[w] * theConst3;
-	// 				//TODO: Shouldn't overwrite this every time. Also need to take the 2 results returned
-	// 				// and make a new "hit" with all 6 coeff indices to return
-    //                 hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[9], loopStartEnds[11]);
-    //             }
-    //         }
-    //     }
-    // }
-
-    // return hits;
 }

@@ -34,9 +34,9 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
 
     // TODO! Use coeffArray instead of LUT directly!!
 
-    // TODO: This sucks. Change this
-    // note that even elements are LUT[0] through LUT[5]
-    int loopStartEnds[12] = {6, 1'216'772, 6, 304'468, 6, 12'180, 6, 4'412, 6, 1'116, 6, 292};
+    // Updated loop boundaries to match checkz3constantswithz5usingLUTandCPU::main
+    // note that these are now negative to positive ranges instead of starting from 6
+    int loopStartEnds[12] = {-608'383, 608'383, -152'231, 152'231, -6'087, 6'087, -2'203, 2'203, -555, 555, -143, 143};
 
     //TODO: Use degree for way more things than just processing loopRanges
     // if loopRanges is non-null, find first level with positive values (-1 indicates use default) and use those
@@ -46,7 +46,7 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
         // loopRanges must have (2*(degree+1)) elements. Format is [zStart, zEnd, yStart, yEnd, ...]
         for (int loopRangeInd = 0; loopRangeInd < (2*(degree+1)); loopRangeInd++) {
             //TODO: Make this not so hacky and stupid
-            if (loopRanges->at(loopRangeInd) >= 0) {
+            if (loopRanges->at(loopRangeInd) < USE_DEFAULT) {
                 // they are setting a non-default value, so update loopStartEnds
                 loopStartEnds[loopRangeInd] = loopRanges->at(loopRangeInd);
                 std::cout << "WARNING: You have set a non-standard loop range. Your search may be incomplete" << std::endl;
@@ -94,44 +94,44 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
 
     std::vector<int*> *hits = new std::vector<int*>();
 
-    // note that these loops use <= (less than or EQUAL TO)
+    // Updated loops to use new boundaries and LUT access pattern
     for (int u = loopStartEnds[0]; u <= loopStartEnds[1]; u++) {
-        v5 = LUT[u] * theConst5;
+        v5 = ((u < 0) ? -LUT[-u] : LUT[u]) * theConst5;
         if (v5 < v5BreakoutLow || v5 > v5BreakoutHigh) {
             // we can't possibly get back to the needle, so bust out
             continue;
         }
 
         for (int v = loopStartEnds[2]; v <= loopStartEnds[3]; v++) {
-            v4 = v5 + LUT[v] * theConst4;
+            v4 = v5 + ((v < 0) ? -LUT[-v] : LUT[v]) * theConst4;
             if (v4 < v4BreakoutLow || v4 > v4BreakoutHigh) {
 				// we can't possibly get back to the needle, so bust out
 				continue;
 			}
 
             for (int w = loopStartEnds[4]; w <= loopStartEnds[5]; w++) {
-				v3 = v4 + LUT[w] * theConst3;
+				v3 = v4 + ((w < 0) ? -LUT[-w] : LUT[w]) * theConst3;
                 if (v3 < v3BreakoutLow || v3 > v3BreakoutHigh) {
                     // we can't possibly get back to the needle, so bust out
                     continue;
                 }
                 
                 for (int x = loopStartEnds[6]; x <= loopStartEnds[7]; x++) {
-				    v2 = v3 + LUT[x] * theConst2;
+				    v2 = v3 + ((x < 0) ? -LUT[-x] : LUT[x]) * theConst2;
                     if (v2 < v2BreakoutLow || v2 > v2BreakoutHigh) {
             			// we can't possibly get back to the needle, so bust out
             			continue;
             		}
 
                     for (int y = loopStartEnds[8]; y <= loopStartEnds[9]; y++) {
-                        v1 = v2 + LUT[y] * theConst;
+                        v1 = v2 + ((y < 0) ? -LUT[-y] : LUT[y]) * theConst;
                         if (v1 < v1BreakoutLow || v1 > v1BreakoutHigh) {
                             // we can't possibly get back to the needle, so bust out
                             continue;
                         }
 
                         for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
-                            v0 = v1 + LUT[z];
+                            v0 = v1 + ((z < 0) ? -LUT[-z] : LUT[z]);
 
                             if (FLOAT_BASICALLY_EQUAL_DEFAULT(v0, needle)) {
                                 // printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",

@@ -18,6 +18,8 @@
 #define ZETA4 1.08232323371113819152
 #define ZETA5 1.03692775514336992633 // 1.036927755143369926331365486457034168L
 
+#define USE_DEFAULT 1'000'000 // this is kind of a hack. Only works because the number of total coeffs currently is 608,384
+
 // logic taken from https://blog.demofox.org/2017/11/21/floating-point-precision/
 static inline double getDoublePrecisionBasedOnMaxValue(const double maxValue) {
     // note we subtract 51 instead of 52 because I am reducing the precision allowed "to be safe"
