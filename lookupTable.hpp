@@ -23,12 +23,12 @@ inline constexpr auto LUT = []
 	// I'm having trouble figuring out how to save off the cutoff15, cutoff30, etc.
 	// variables separately so I'm hacking this up and making the resulting lookup table
 	// start with the 6 cutoff values I'm looking for. Hence why pos starts at 6. In other words:
-	// LUT[0] = cutoff15 = 143 was 149 (so 150) only positives, all 292 (so array size needs to be 293)
-	// LUT[1] = cutoff30 = 555 was 561 (so 562) only positives, all 1,116 (so 1,117)
-	// LUT[2] = cutoff60 = 2,203 was 2,209 (so 2,210) only positives, all 4,412 (so 4,413)
-	// LUT[3] = cutoff100 = 6,087 was 6,093 (so 6,094) only positives, all 12,180 (so 12,181)
-	// LUT[4] = cutoff500 = 152.231 was 152,237 (so 152,238) only positives, all 304,468 (so 304,469)
-	// LUT[5] = cutoff1000 = actualSize = 608,383 was 608,389 (so 608,390) only positives, all 1,216,772 (so 1,216,773)
+	// LUT[0] = cutoff15 = 143 now, was 149 (so 150) only positives, all 292 (so array size needs to be 293)
+	// LUT[1] = cutoff30 = 555 now, was 561 (so 562) only positives, all 1,116 (so 1,117)
+	// LUT[2] = cutoff60 = 2,203 now, was 2,209 (so 2,210) only positives, all 4,412 (so 4,413)
+	// LUT[3] = cutoff100 = 6,087 now, was 6,093 (so 6,094) only positives, all 12,180 (so 12,181)
+	// LUT[4] = cutoff500 = 152.231 now, was 152,237 (so 152,238) only positives, all 304,468 (so 304,469)
+	// LUT[5] = cutoff1000 = actualSize = 608,383 now, was 608,389 (so 608,390) only positives, all 1,216,772 (so 1,216,773)
 	// LUT[6] = 0;
 	// LUT[7] = 1;
 	// LUT[8] = -1;

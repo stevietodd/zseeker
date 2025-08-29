@@ -145,8 +145,7 @@ std::vector<int*>* GpuQuinticLastChecker::findHits(
             const std::vector<int> *loopRanges
 )
 {
-    // Updated loop boundaries to match checkz3constantswithz5usingLUTandCPU::main
-    // note that these are now negative to positive ranges instead of starting from 6
+    // Updated loop boundaries to go from negative to positive ranges instead of starting from 6
     int loopStartEnds[12] = {-608'383, 608'383, -152'231, 152'231, -6'087, 6'087, -2'203, 2'203, -555, 555, -143, 143};
 
     //TODO: Use degree for way more things than just processing loopRanges
@@ -173,7 +172,7 @@ std::vector<int*>* GpuQuinticLastChecker::findHits(
 
     std::vector<int*> *hits = new std::vector<int*>();
 
-    // Updated loops to use new boundaries and LUT access pattern
+    // note that these loops use <= (less than or EQUAL TO)
     for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
 		v0 = (z < 0) ? -coeffArray[-z] : coeffArray[z];
 	

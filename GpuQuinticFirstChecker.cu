@@ -81,8 +81,7 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
             const std::vector<int> *loopRanges
 )
 {
-    // Updated loop boundaries to match checkz3constantswithz5usingLUTandCPU::main
-    // note that these are now negative to positive ranges instead of starting from 6
+    // Updated loop boundaries to go from negative to positive ranges instead of starting from 6
     int loopStartEnds[12] = {-608'383, 608'383, -152'231, 152'231, -6'087, 6'087, -2'203, 2'203, -555, 555, -143, 143};
 
 	// TODO: This also sucks. Change this
