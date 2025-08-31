@@ -140,9 +140,9 @@ int main(int argc, char *argv[])
 
 	cout.precision(ldbl::max_digits10);
 
-	cout << "Yo" << endl;
-	cout << sizeof(LUT) << endl;
-	cout << "cutoff15=" << LUT[0] << "\n";
+	// cout << "Yo" << endl;
+	// cout << sizeof(LUT) << endl;
+	// cout << "cutoff15=" << LUT[0] << "\n";
 	// cout << "cutoff30=" << LUT[1] << "\n";
 	// cout << "cutoff60=" << LUT[2] << "\n";
 	// cout << "cutoff100=" << LUT[3] << "\n";
@@ -163,17 +163,17 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	for (int z = 6; z <= 292; z++) { // LUT[0]
-		v0 = LUT[z];
+	for (int z = -143; z <= 143; z++) { // LUT[0]
+		v0 = (z < 0) ? -LUT[-z] : LUT[z];
 	
-		for (int y = 6; y <= 1116; y++) { // LUT[1]
-			v1 = v0 + LUT[y] * lnpi;
+		for (int y = -555; y <= 555; y++) { // LUT[1]
+			v1 = v0 + ((y < 0) ? -LUT[-y] : LUT[y]) * lnpi;
 
-			for (int x = 6; x <= 4412; x++) { // LUT[2]
-				v2 = v1 + LUT[x] * lnpi2;
+			for (int x = -2'203; x <= 2'203; x++) { // LUT[2]
+				v2 = v1 + ((x < 0) ? -LUT[-x] : LUT[x]) * lnpi2;
 
-				for (int w = 6; w <= 12180; w++) { // LUT[3]
-					v3 = v2 + LUT[w] * lnpi3;
+				for (int w = -6'087; w <= 6'087; w++) { // LUT[3]
+					v3 = v2 + ((w < 0) ? -LUT[-w] : LUT[w]) * lnpi3;
 
 							// if (w % 100 == 0) {
 					cout << "w=" << w << ", " << getCurrentTimeString();
@@ -181,12 +181,12 @@ int main(int argc, char *argv[])
 						//output = testForZeta5OnGPU(lnpi, v3, LUTptr, 304468, 1216772);  // took 12-13 minutes per w-loop but supposedly isn't getting right results
 						 return 0;  // Uncomment me and comment out above to compile on baremetal M1
 					} else {
-						for (int v = 6; v <= 304468; v++) { // LUT[4]   // took 46-48 minutes per w-loop but gets results
-							v4 = v3 + LUT[v] * lnpi4;
+						for (int v = -152'231; v <= 152'231; v++) { // LUT[4]   // took 46-48 minutes per w-loop but gets results
+							v4 = v3 + ((v < 0) ? -LUT[-v] : LUT[v]) * lnpi4;
 
 							//cout << "v=" << v << ", " << getCurrentTimeString();
-							for (int u = 6; u <= 1216772; u++) { // LUT[5]
-								v5 = v4 + LUT[u] * lnpi5;
+							for (int u = -608'383; u <= 608'383; u++) { // LUT[5]
+								v5 = v4 + ((u < 0) ? -LUT[-u] : LUT[u]) * lnpi5;
 								//cout << "u=" << u << ", " << getCurrentTimeString();
 								valDif = v5 - z5;
 								if (valDif < .0000001 && valDif > -.0000001) {

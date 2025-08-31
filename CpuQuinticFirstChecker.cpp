@@ -34,9 +34,8 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
 
     // TODO! Use coeffArray instead of LUT directly!!
 
-    // TODO: This sucks. Change this
-    // note that even elements are LUT[0] through LUT[5]
-    int loopStartEnds[12] = {6, 1'216'772, 6, 304'468, 6, 12'180, 6, 4'412, 6, 1'116, 6, 292};
+    // Updated loop boundaries to go from negative to positive ranges instead of starting from 6
+    int loopStartEnds[12] = {-608'383, 608'383, -152'231, 152'231, -6'087, 6'087, -2'203, 2'203, -555, 555, -143, 143};
 
     //TODO: Use degree for way more things than just processing loopRanges
     // if loopRanges is non-null, find first level with positive values (-1 indicates use default) and use those
@@ -46,7 +45,7 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
         // loopRanges must have (2*(degree+1)) elements. Format is [zStart, zEnd, yStart, yEnd, ...]
         for (int loopRangeInd = 0; loopRangeInd < (2*(degree+1)); loopRangeInd++) {
             //TODO: Make this not so hacky and stupid
-            if (loopRanges->at(loopRangeInd) >= 0) {
+            if (loopRanges->at(loopRangeInd) < USE_DEFAULT) {
                 // they are setting a non-default value, so update loopStartEnds
                 loopStartEnds[loopRangeInd] = loopRanges->at(loopRangeInd);
                 std::cout << "WARNING: You have set a non-standard loop range. Your search may be incomplete" << std::endl;
@@ -72,27 +71,27 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
 
     // note that these loops use <= (less than or EQUAL TO)
     for (int u = loopStartEnds[0]; u <= loopStartEnds[1]; u++) {
-        v5 = LUT[u] * theConst5;
-        maxValue = abs(v5);
+        v5 = ((u < 0) ? -LUT[-u] : LUT[u]) * theConst5;
+		maxValue = abs(v5);
 
         for (int v = loopStartEnds[2]; v <= loopStartEnds[3]; v++) {
-			v4 = v5 + LUT[v] * theConst4;
-			maxValue = std::max({maxValue, abs(v4), abs(LUT[v]), abs(theConst4), abs(v4 - v5)});
+            v4 = v5 + ((v < 0) ? -LUT[-v] : LUT[v]) * theConst4;
+			maxValue = std::max({maxValue, abs(v4), LUT[v], abs(theConst4), abs(v4 - v5)});
 
             for (int w = loopStartEnds[4]; w <= loopStartEnds[5]; w++) {
-				v3 = v4 + LUT[w] * theConst3;
-				maxValue = std::max({maxValue, abs(v3), abs(LUT[w]), abs(theConst3), abs(v3 - v4)});
+				v3 = v4 + ((w < 0) ? -LUT[-w] : LUT[w]) * theConst3;
+				maxValue = std::max({maxValue, abs(v3), LUT[w], abs(theConst3), abs(v3 - v4)});
 				floatTol = getFloatPrecisionBasedOnMaxValue(maxValue);
 				doubleTol = getDoublePrecisionBasedOnMaxValue(maxValue);
                 
                 for (int x = loopStartEnds[6]; x <= loopStartEnds[7]; x++) {
-				    v2 = v3 + LUT[x] * theConst2;
+				    v2 = v3 + ((x < 0) ? -LUT[-x] : LUT[x]) * theConst2;
 
                     for (int y = loopStartEnds[8]; y <= loopStartEnds[9]; y++) {
-                        v1 = v2 + LUT[y] * theConst;
+                        v1 = v2 + ((y < 0) ? -LUT[-y] : LUT[y]) * theConst;
 
                         for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
-                            v0 = v1 + LUT[z];
+                            v0 = v1 + ((z < 0) ? -LUT[-z] : LUT[z]);
 
                             if (FLOAT_BASICALLY_EQUAL(v0, needle, floatTol)) {
 								// TODO: Increment counter of float hits

@@ -7,7 +7,14 @@
 TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new GpuQuinticLastChecker();
     std::vector<int*> *hits;
-    std::vector<int> *loopRanges = new std::vector<int>{-1,-1,-1,1446,-1,6,-1,6,-1,6,-1,6};
+    std::vector<int> *loopRanges = new std::vector<int>{
+		USE_DEFAULT, USE_DEFAULT,
+		-1446, 1446,
+		0, 0, // skip this loop effectively
+		0, 0, // skip this loop effectively
+		0, 0, // skip this loop effectively
+		0, 0 // skip this loop effectively
+	};
 
     hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges);
 
@@ -54,7 +61,14 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
 TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new GpuQuinticFirstChecker();
     std::vector<int*> *hits;
-    std::vector<int> *loopRanges = new std::vector<int>{6,7,6,7,6,7,-1,-1,-1,-1,-1,-1};
+    std::vector<int> *loopRanges = new std::vector<int>{
+		0, 1,
+		0, 1,
+		0, 1,
+		USE_DEFAULT, USE_DEFAULT,
+		USE_DEFAULT, USE_DEFAULT,
+		USE_DEFAULT, USE_DEFAULT
+	};
 
     hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges);
 

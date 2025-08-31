@@ -93,9 +93,9 @@ std::vector<T>* testForZeta5OnGPU(T cons, T cubicSum, const T *coeffArray, int q
     int grid_size = ((quintLastIndex + block_size) / block_size);
 	cout << grid_size << "\n";
 
-	// loop through quarts
-	for (int i = 6; i <= quartLastIndex; i++) {
-		currentQuart = coeffArray[i];
+	// Updated loop to use new boundaries - loop through quarts from negative to positive
+	for (int i = -quartLastIndex; i <= quartLastIndex; i++) {
+		currentQuart = (i < 0) ? -coeffArray[-i] : coeffArray[i];
 
 		quarticSum = cubicSum + currentQuart * consFourth;
 

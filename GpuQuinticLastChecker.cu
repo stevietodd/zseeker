@@ -92,9 +92,9 @@ cout << cons << "," << consFourth << "," << consFifth << endl;
     int grid_size = ((quintLastIndex + block_size) / block_size);
 	cout << grid_size << "\n";
 
-	// loop through quarts
-	for (int i = 6; i <= quartLastIndex; i++) {
-		currentQuart = coeffArray[i];
+	// Updated loop to use new boundaries - loop through quarts from negative to positive
+	for (int i = -quartLastIndex; i <= quartLastIndex; i++) {
+		currentQuart = (i < 0) ? -coeffArray[-i] : coeffArray[i];
 
 		quarticSum = cubicSum + currentQuart * consFourth;
 
@@ -145,9 +145,8 @@ std::vector<int*>* GpuQuinticLastChecker::findHits(
             const std::vector<int> *loopRanges
 )
 {
-    // TODO: This sucks. Change this
-    // note that even elements are LUT[0] through LUT[5]
-    int loopStartEnds[12] = {6, 1'216'772, 6, 304'468, 6, 12'180, 6, 4'412, 6, 1'116, 6, 292};
+    // Updated loop boundaries to go from negative to positive ranges instead of starting from 6
+    int loopStartEnds[12] = {-608'383, 608'383, -152'231, 152'231, -6'087, 6'087, -2'203, 2'203, -555, 555, -143, 143};
 
     //TODO: Use degree for way more things than just processing loopRanges
     // if loopRanges is non-null, find first level with positive values (-1 indicates use default) and use those
@@ -156,7 +155,7 @@ std::vector<int*>* GpuQuinticLastChecker::findHits(
         // loopRanges must have (2*(degree+1)) elements. Format is [zStart, zEnd, yStart, yEnd, ...]
         for (int loopRangeInd = 0; loopRangeInd < (2*(degree+1)); loopRangeInd++) {
             //TODO: Make this not so hacky and stupid
-            if (loopRanges->at(loopRangeInd) >= 0) {
+            if (loopRanges->at(loopRangeInd) < USE_DEFAULT) {
                 // they are setting a non-default value, so update loopStartEnds
                 loopStartEnds[loopRangeInd] = loopRanges->at(loopRangeInd);
                 std::cout << "WARNING: You have set a non-standard loop range. Your search may be incomplete" << std::endl;
@@ -175,17 +174,17 @@ std::vector<int*>* GpuQuinticLastChecker::findHits(
 
     // note that these loops use <= (less than or EQUAL TO)
     for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
-		v0 = coeffArray[z];
+		v0 = (z < 0) ? -coeffArray[-z] : coeffArray[z];
 	
 		for (int y = loopStartEnds[8]; y <= loopStartEnds[9]; y++) {
-			v1 = v0 + coeffArray[y] * theConst;
+			v1 = v0 + ((y < 0) ? -coeffArray[-y] : coeffArray[y]) * theConst;
 
 			for (int x = loopStartEnds[6]; x <= loopStartEnds[7]; x++) {
-				v2 = v1 + coeffArray[x] * theConst2;
+				v2 = v1 + ((x < 0) ? -coeffArray[-x] : coeffArray[x]) * theConst2;
 
 				for (int w = loopStartEnds[4]; w <= loopStartEnds[5]; w++) {
 					printf("dog\n");
-					v3 = v2 + coeffArray[w] * theConst3;
+					v3 = v2 + ((w < 0) ? -coeffArray[-w] : coeffArray[w]) * theConst3;
 					//TODO: Shouldn't overwrite this every time. Also need to take the 2 results returned
 					// and make a new "hit" with all 6 coeff indices to return
                     hits = testForZeta5OnGPU(theConst, v3, coeffArray, loopStartEnds[3], loopStartEnds[1]);
