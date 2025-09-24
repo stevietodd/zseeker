@@ -84,7 +84,7 @@ inline constexpr auto LUT = []
 inline constexpr auto doubleLUT = []
 {
     constexpr auto LUT_LoopSize = 1000;
-	std::array<double, (1'216'773)> arr = {};
+	std::array<double, (608'384)> arr = {};
 	
 	// I'm having trouble figuring out how to save off the cutoff15, cutoff30, etc.
 	// variables separately so I'm hacking this up and making the resulting lookup table
@@ -99,14 +99,14 @@ inline constexpr auto doubleLUT = []
 	// LUT[7] = 1;
 	// LUT[8] = -1;
 	// ...and so on...
-	int pos = 6;
+	int pos = 0;
 
 	// store zero separately
 	arr[pos++] = f(0,1);
 
 	// store 1 and -1 separately
 	arr[pos++] = f(1,1);
-	arr[pos++] = f(-1,1);
+	//arr[pos++] = f(-1,1);
 
     for (int i = 2; i <= LUT_LoopSize; i++)
     {
@@ -117,25 +117,25 @@ inline constexpr auto doubleLUT = []
 			}
 
 			arr[pos++] = d(j,i);
-			arr[pos++] = d(-j,i);
+			//arr[pos++] = d(-j,i);
 			arr[pos++] = d(i,j);
-			arr[pos++] = d(-i,j);
+			//arr[pos++] = d(-i,j);
 		}
         
 		// note we subtract 1 from pos because we've already incremented it
-		if (i == 15) {
-			arr[0] = pos - 1; // cutoff15
-		} else if (i == 30) {
-			arr[1] = pos - 1; // cutoff30
-		} else if (i == 60) {
-			arr[2] = pos - 1; // cutoff60
-		} else if (i == 100) {
-			arr[3] = pos - 1; // cutoff100
-		} else if (i == 500) {
-			arr[4] = pos - 1; // cutoff500
-		} else if (i == 1000) {
-			arr[5] = pos - 1; // cutoff1000
-		}
+		// if (i == 15) {
+		// 	arr[0] = pos - 1; // cutoff15
+		// } else if (i == 30) {
+		// 	arr[1] = pos - 1; // cutoff30
+		// } else if (i == 60) {
+		// 	arr[2] = pos - 1; // cutoff60
+		// } else if (i == 100) {
+		// 	arr[3] = pos - 1; // cutoff100
+		// } else if (i == 500) {
+		// 	arr[4] = pos - 1; // cutoff500
+		// } else if (i == 1000) {
+		// 	arr[5] = pos - 1; // cutoff1000
+		// }
 			
     }
 
