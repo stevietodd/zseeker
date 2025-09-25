@@ -138,11 +138,12 @@ cout << cons << "," << consFourth << "," << consFifth << endl;
 }
 
 std::vector<int*>* GpuQuinticLastChecker::findHits(
-            const float needle,
-            const float theConst,
+            const double needle,
+            const double theConst,
             const int degree,
             const float *coeffArray,
-            const std::vector<int> *loopRanges
+            const std::vector<int> *loopRanges,
+            long& floatHitCount
 )
 {
     // Updated loop boundaries to go from negative to positive ranges instead of starting from 6
@@ -162,7 +163,7 @@ std::vector<int*>* GpuQuinticLastChecker::findHits(
             }
         }
     }
-
+// HUGE TODO: Just trying to get to compile on 9/24/25 so changed parameter theConst to double above but have not changed anything below this line to accomodate
     const float theConst2 = powl(theConst, (float)2);
 	const float theConst3 = powl(theConst, (float)3);
 	const float theConst4 = powl(theConst, (float)4);

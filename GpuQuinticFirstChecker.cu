@@ -74,11 +74,12 @@ __global__ static void compareToZeta5loop(int *out, const T theConst, const T ne
 }
 
 std::vector<int*>* GpuQuinticFirstChecker::findHits(
-            const float needle,
-            const float theConst,
+            const double needle,
+            const double theConst,
             const int degree,
             const float *coeffArray,
-            const std::vector<int> *loopRanges
+            const std::vector<int> *loopRanges,
+            long& floatHitCount
 )
 {
     // Updated loop boundaries to go from negative to positive ranges instead of starting from 6
@@ -103,6 +104,8 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
             }
         }
     }
+// HUGE TODO: Just trying to get to compile on 9/24/25 so changed parameters needle and theConst to double above but have not changed anything below this line to accomodate
+// (except casting as float so GPU call would stay the same)
 
 	float currentQuart;
 	float quarticSum;
@@ -157,7 +160,7 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 	cout << gridsizes.x << "," << gridsizes.y << "," << gridsizes.z << "\n";
 
 	// Execute kernel
-	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst, needle, d_coeffArray, d_loopStartEnds, d_hitCount);
+	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, (float)theConst, (float)needle, d_coeffArray, d_loopStartEnds, d_hitCount);
 cout << cudaPeekAtLastError() << endl;
 	// Transfer data back to host memory
 	cudaMemcpy(&h_hitCount , d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
@@ -185,6 +188,7 @@ cout << cudaPeekAtLastError() << endl;
 
 	delete out;
 
+	floatHitCount = results->size();
 	return results;
 
 
