@@ -13,6 +13,9 @@ int main(int argc, char *argv[])
     long floatHitCount = 0;
 	double theConst;
 
+	typedef std::numeric_limits< float > ldbl;
+	std::cout.precision(ldbl::max_digits10);
+
     switch (argc) {
 		case 3:
 		{
@@ -83,11 +86,14 @@ int main(int argc, char *argv[])
 	}
 
     hits = checker->findHits(ZETA5, theConst, 5, LUT.data(), NULL, floatHitCount);
-    std::cout << "Count=" << hits->size() << std::endl;
-    std::cout << "OutputCount=" << floatHitCount << std::endl;
-    int *result = hits->at(0);
-    std::cout << "Vals=" << result[0] << "," << result[1] << "," << result[2] << "," << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
-    // result = hits->at(27);
+    std::cout << "Float Hit Count = " << floatHitCount << std::endl;
+	std::cout << "Real Hit Count = " << hits->size() << std::endl;
+    int *result;
+	for (int i=0; i < hits->size(); i++) {
+		result = hits->at(i);
+    	std::cout << "Hit = " << result[0] << "," << result[1] << "," << result[2] << "," << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
+	}
+	// result = hits->at(27);
     // std::cout << "Vals=" << result[0] << "," << result[1] << "," << result[2] << "," << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
     
     // clean up

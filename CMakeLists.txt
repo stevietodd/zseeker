@@ -84,6 +84,8 @@ else()
     PolynomialCheckerInterface.hpp
     CpuPolynomialChecker.hpp
     CpuQuinticLastChecker.cpp
+	CpuQuinticFirstChecker.cpp
+    CpuQuinticFirstWithBreakoutsChecker.cpp
     #GpuPolynomialChecker.hpp
     #GpuQuinticLastChecker.cu
     #GpuQuinticFirstChecker.cu
