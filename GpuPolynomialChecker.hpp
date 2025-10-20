@@ -35,4 +35,20 @@ class GpuQuinticFirstChecker : public PolynomialCheckerInterface
         );
 };
 
+class GpuNoLookupTableChecker : public PolynomialCheckerInterface
+{
+    public:
+		GpuNoLookupTableChecker(){}
+        ~GpuNoLookupTableChecker(){}
+
+        std::vector<int*>* findHits(
+            const double needle,
+            const double theConst,
+            const int degree,
+            const float *coeffArray,
+            const std::vector<int> *loopRanges,
+            long& floatHitCount
+        );
+};
+
 #endif // GPU_POLYNOMIAL_CHECKER_HPP

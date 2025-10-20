@@ -109,10 +109,10 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 
 	float currentQuart;
 	float quarticSum;
-	const float theConst2 = powl(theConst, (float)2);
-	const float theConst3 = powl(theConst, (float)3);
-	const float theConst4 = powl(theConst, (float)4);
-	const float theConst5 = powl(theConst, (float)5);
+	const double theConst2 = powl(theConst, (double)2);
+	const double theConst3 = powl(theConst, (double)3);
+	const double theConst4 = powl(theConst, (double)4);
+	const double theConst5 = powl(theConst, (double)5);
 	const int quintLastIndex = loopStartEnds[1];
 	const int quartLastIndex = loopStartEnds[3];
 	const int cubicLastIndex = loopStartEnds[5];
