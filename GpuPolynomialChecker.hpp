@@ -10,11 +10,12 @@ class GpuQuinticLastChecker : public PolynomialCheckerInterface
         ~GpuQuinticLastChecker(){}
 
         std::vector<int*>* findHits(
-            const float needle,
-            const float theConst,
+            const double needle,
+            const double theConst,
             const int degree,
             const float *coeffArray,
-            const std::vector<int> *loopRanges
+            const std::vector<int> *loopRanges,
+            long& floatHitCount
         );
 };
 
@@ -25,11 +26,28 @@ class GpuQuinticFirstChecker : public PolynomialCheckerInterface
         ~GpuQuinticFirstChecker(){}
 
         std::vector<int*>* findHits(
-            const float needle,
-            const float theConst,
+            const double needle,
+            const double theConst,
             const int degree,
             const float *coeffArray,
-            const std::vector<int> *loopRanges
+            const std::vector<int> *loopRanges,
+            long& floatHitCount
+        );
+};
+
+class GpuNoLookupTableChecker : public PolynomialCheckerInterface
+{
+    public:
+		GpuNoLookupTableChecker(){}
+        ~GpuNoLookupTableChecker(){}
+
+        std::vector<int*>* findHits(
+            const double needle,
+            const double theConst,
+            const int degree,
+            const float *coeffArray,
+            const std::vector<int> *loopRanges,
+            long& floatHitCount
         );
 };
 

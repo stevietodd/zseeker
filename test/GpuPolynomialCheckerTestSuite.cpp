@@ -6,6 +6,7 @@
 
 TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new GpuQuinticLastChecker();
+    long floatHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		USE_DEFAULT, USE_DEFAULT,
@@ -16,7 +17,7 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
 		0, 0 // skip this loop effectively
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges);
+    hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges, floatHitCount);
 
     // manual analysis indicates there should be at least 19 hits within .000005 range...
 	ASSERT_LE(19, hits->size());
@@ -60,6 +61,7 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
  */
 TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new GpuQuinticFirstChecker();
+    long floatHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		0, 1,
@@ -70,7 +72,7 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConf
 		USE_DEFAULT, USE_DEFAULT
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges);
+    hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges, floatHitCount);
 
     // various setups have netted 721 results...
 	ASSERT_LE(720, hits->size());
@@ -107,12 +109,26 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConf
 TEST(GpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {
     GTEST_SKIP() << "Probably won't unskip this until qd work is added.";
     PolynomialCheckerInterface *checker = new GpuQuinticFirstChecker();
+    long floatHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{-1,6,-1,6,-1,6,-1,6,-1,-1,-1,6};
 
-    hits = checker->findHits(ZETA4, M_PI, 5, LUT.data(), loopRanges);
+    hits = checker->findHits(ZETA4, M_PI, 5, LUT.data(), loopRanges, floatHitCount);
 
 // this does get the right hit when v-loop is on v=9829 which corresponds to 1/90. v5 ends up being 1.08232343 while z4 = 1.082323223
 	ASSERT_EQ(28, hits->size());
     //EXPECT_EQ(0, hits->at(27)); TODO Check some actual results
 }
+
+// TEST(GpuPolynomialCheckerTestSuite, GpuNoLookup) {
+//     PolynomialCheckerInterface *checker = new GpuNoLookupTableChecker();
+//     long floatHitCount = 0;
+//     std::vector<int*> *hits;
+//     std::vector<int> *loopRanges = new std::vector<int>{-1,6,-1,6,-1,6,-1,6,-1,-1,-1,6};
+
+//     hits = checker->findHits(ZETA4, M_PI, 5, LUT.data(), loopRanges, floatHitCount);
+
+// // this does get the right hit when v-loop is on v=9829 which corresponds to 1/90. v5 ends up being 1.08232343 while z4 = 1.082323223
+// 	ASSERT_EQ(28, hits->size());
+//     //EXPECT_EQ(0, hits->at(27)); TODO Check some actual results
+// }

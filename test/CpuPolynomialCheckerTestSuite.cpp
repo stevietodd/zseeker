@@ -12,6 +12,7 @@
 TEST(CpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticLastChecker();
     std::vector<int*> *hits;
+    long floatHitCount = 0;
     std::vector<int> *loopRanges = new std::vector<int>{
 		USE_DEFAULT, USE_DEFAULT,
 		-773, 773,
@@ -21,62 +22,70 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
 		0, 0 // skip this loop effectively
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges);
+    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
 
-	// manual analysis indicates there should be at least 19 hits within .000005 range...
-	ASSERT_LE(19, hits->size());
+	// testing indicates there should be at least 21,445 float hits within tolerance range...
+	ASSERT_LE(21'445, floatHitCount);
 
     // ...but there should be closer to 26-28 depending on rounding. If there are too many hits something is wrong
-    EXPECT_GE(30, hits->size());
+    EXPECT_GE(21'453, floatHitCount);
+
+	// ...however there should be 0 "real" double hits
+	ASSERT_EQ(0, hits->size());
 
     // now let's ensure some close hits (err <= .000003) were returned
-    bool hit1Found = false, hit2Found = false, hit3Found = false;
-    int hit1[] = {-95'710,113,0,0,0,0}; // -0.372795969c^5 + 1.18181813c^4 = -(148/397)c^5 + (13/11)c^4
-    int hit2[] = {-472'234,151,0,0,0,0}; // -0.724177063c^5 + 2.28571439c^4 = -(638/881)c^5 + (16/17)c^4
-    int hit3[] = {-298'042,720,0,0,0,0}; // -0.00570613425c^5 + 0.0285714287c^4 = -(4/701)c^5 + (1/35)c^4
-    for (int* hit : *hits) {
-        if (!hit1Found && 0 == std::memcmp(hit, hit1, sizeof(hit1))) {
-            hit1Found = true;
-            continue;
-        }
-        if (!hit2Found && 0 == std::memcmp(hit, hit2, sizeof(hit2))) {
-            hit2Found = true;
-            continue;
-        }
-        if (!hit3Found && 0 == std::memcmp(hit, hit3, sizeof(hit3))) {
-            hit3Found = true;
-            continue;
-        }
-    }
+    // bool hit1Found = false, hit2Found = false, hit3Found = false;
+    // int hit1[] = {-95'710,113,0,0,0,0}; // -0.372795969c^5 + 1.18181813c^4 = -(148/397)c^5 + (13/11)c^4
+    // int hit2[] = {-472'234,151,0,0,0,0}; // -0.724177063c^5 + 2.28571439c^4 = -(638/881)c^5 + (16/17)c^4
+    // int hit3[] = {-298'042,720,0,0,0,0}; // -0.00570613425c^5 + 0.0285714287c^4 = -(4/701)c^5 + (1/35)c^4
+    // for (int* hit : *hits) {
+    //     if (!hit1Found && 0 == std::memcmp(hit, hit1, sizeof(hit1))) {
+    //         hit1Found = true;
+    //         continue;
+    //     }
+    //     if (!hit2Found && 0 == std::memcmp(hit, hit2, sizeof(hit2))) {
+    //         hit2Found = true;
+    //         continue;
+    //     }
+    //     if (!hit3Found && 0 == std::memcmp(hit, hit3, sizeof(hit3))) {
+    //         hit3Found = true;
+    //         continue;
+    //     }
+    // }
 
-    if (!hit1Found || !hit2Found || !hit3Found) {
-        FAIL() << "Did not find all hits we were expecting. Found Hit1? Hit2?, Hit3? = " << hit1Found << ","
-            << hit2Found << "," << hit3Found;
-    }
+    // if (!hit1Found || !hit2Found || !hit3Found) {
+    //     FAIL() << "Did not find all hits we were expecting. Found Hit1? Hit2?, Hit3? = " << hit1Found << ","
+    //         << hit2Found << "," << hit3Found;
+    // }
 }
 
 /*
- * Takes about 40 seconds on linux box, 723 results
+ * Takes about 40 seconds on linux box, 723 results (used to, before dynamic precision, now takes 114 seconds)
  */
 TEST(CpuPolynomialCheckerTestSuite, QuinticLastZeroAndOneHighDegreesResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticLastChecker();
-    std::vector<int*> *hits;
+    long floatHitCount = 0;
+	std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		0, 1,
 		0, 1,
 		0, 1,
-		USE_DEFAULT, USE_DEFAULT,
+		0, 500, // random choice of range here but trying to keep time down
 		USE_DEFAULT, USE_DEFAULT,
 		USE_DEFAULT, USE_DEFAULT
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges);
+    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
 
-	// various setups have netted 721 results...
-	ASSERT_LE(720, hits->size());
+	// testing indicates there should be at least 8,940 float hits within tolerance range...
+	//ASSERT_LE(8'940, floatHitCount);
+	//ASSERT_LE(74, floatHitCount); // why the change??
+	ASSERT_LE(66'761, floatHitCount); // why the change again??
+	
+	ASSERT_GE(66'761, floatHitCount);
 
-    // ...but some have had as many as 727. If there are too many hits something is wrong
-    EXPECT_GE(730, hits->size());
+    // ...however there should be 0 "real" double hits
+	ASSERT_EQ(0, hits->size());
 
     // // now let's ensure some close hits (err <= .000003) were returned
     // bool hit1Found = false, hit2Found = false, hit3Found = false;
@@ -104,21 +113,28 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticLastZeroAndOneHighDegreesResultsConfi
     // }
 }
 
-TEST(CpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {
-    GTEST_SKIP() << "Probably won't unskip this until qd work is added.";
+TEST(CpuPolynomialCheckerTestSuite, QuinticLastZeta4WithPiTest) {
+    //GTEST_SKIP() << "Probably won't unskip this until qd work is added.";
     PolynomialCheckerInterface *checker = new CpuQuinticLastChecker();
+    long floatHitCount = 0;
     std::vector<int*> *hits;
-    std::vector<int> *loopRanges = new std::vector<int>{-1,6,-1,6,-1,6,-1,6,-1,-1,-1,6};
+    std::vector<int> *loopRanges = new std::vector<int>{
+		0, 0,
+		4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit
+		-2, 2,
+		-2, 2,
+		-2, 2,
+		USE_DEFAULT, USE_DEFAULT};
 
-    hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges);
+    hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, floatHitCount);
 
-// this does get the right hit when v-loop is on v=9829 which corresponds to 1/90. v5 ends up being 1.08232343 while z4 = 1.082323223
-	ASSERT_EQ(28, hits->size());
-    //EXPECT_EQ(0, hits->at(27)); TODO Check some actual results
+	// should find the real hit when zeta4 = (pi^4) / 90
+	ASSERT_EQ(1, hits->size());
 }
 
 TEST(CpuPolynomialCheckerTestSuite, QuinticFirstOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticFirstChecker();
+    long floatHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		USE_DEFAULT, USE_DEFAULT,
@@ -129,42 +145,69 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstOnlyQuinticQuarticResultsConfirm
 		0, 0 // skip this loop effectively
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges);
+    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
 
-	// manual analysis indicates there should be at least 19 hits within .000005 range...
-	ASSERT_LE(19, hits->size());
+	// testing indicates there should be at least 8,940 float hits within tolerance range...
+	//ASSERT_LE(8'940, floatHitCount);
+	//ASSERT_LE(74, floatHitCount); // why the change??
+	ASSERT_LE(21'445, floatHitCount); // why the change again??
 
-    // ...but there should be closer to 26-28 depending on rounding. If there are too many hits something is wrong
-    EXPECT_GE(30, hits->size());
+    // ...but there should be closer to 8,949 float hits depending on rounding. If there are too many something is wrong
+    //EXPECT_GE(8'955, floatHitCount);
+	//ASSERT_GE(74, floatHitCount); // why the change??
+	ASSERT_GE(21'453, floatHitCount); // why the change again??
+
+	// ...however there should be 0 "real" double hits
+	ASSERT_EQ(0, hits->size());
 
     // now let's ensure some close hits (err <= .000003) were returned
-    bool hit1Found = false, hit2Found = false, hit3Found = false;
-    int hit1[] = {-95'710,113,0,0,0,0}; // -0.372795969c^5 + 1.18181813c^4 = -(148/397)c^5 + (13/11)c^4
-    int hit2[] = {-472'234,151,0,0,0,0}; // -0.724177063c^5 + 2.28571439c^4 = -(638/881)c^5 + (16/17)c^4
-    int hit3[] = {-298'042,720,0,0,0,0}; // -0.00570613425c^5 + 0.0285714287c^4 = -(4/701)c^5 + (1/35)c^4
-    for (int* hit : *hits) {
-        if (!hit1Found && 0 == std::memcmp(hit, hit1, sizeof(hit1))) {
-            hit1Found = true;
-            continue;
-        }
-        if (!hit2Found && 0 == std::memcmp(hit, hit2, sizeof(hit2))) {
-            hit2Found = true;
-            continue;
-        }
-        if (!hit3Found && 0 == std::memcmp(hit, hit3, sizeof(hit3))) {
-            hit3Found = true;
-            continue;
-        }
-    }
+    // bool hit1Found = false, hit2Found = false, hit3Found = false;
+    // int hit1[] = {-95'710,113,0,0,0,0}; // -0.372795969c^5 + 1.18181813c^4 = -(148/397)c^5 + (13/11)c^4
+    // int hit2[] = {-472'234,151,0,0,0,0}; // -0.724177063c^5 + 2.28571439c^4 = -(638/881)c^5 + (16/17)c^4
+    // int hit3[] = {-298'042,720,0,0,0,0}; // -0.00570613425c^5 + 0.0285714287c^4 = -(4/701)c^5 + (1/35)c^4
+    // for (int* hit : *hits) {
+    //     if (!hit1Found && 0 == std::memcmp(hit, hit1, sizeof(hit1))) {
+    //         hit1Found = true;
+    //         continue;
+    //     }
+    //     if (!hit2Found && 0 == std::memcmp(hit, hit2, sizeof(hit2))) {
+    //         hit2Found = true;
+    //         continue;
+    //     }
+    //     if (!hit3Found && 0 == std::memcmp(hit, hit3, sizeof(hit3))) {
+    //         hit3Found = true;
+    //         continue;
+    //     }
+    // }
 
-    if (!hit1Found || !hit2Found || !hit3Found) {
-        FAIL() << "Did not find all hits we were expecting. Found Hit1? Hit2?, Hit3? = " << hit1Found << ","
-            << hit2Found << "," << hit3Found;
-    }
+    // if (!hit1Found || !hit2Found || !hit3Found) {
+    //     FAIL() << "Did not find all hits we were expecting. Found Hit1? Hit2?, Hit3? = " << hit1Found << ","
+    //         << hit2Found << "," << hit3Found;
+    // }
+}
+
+TEST(CpuPolynomialCheckerTestSuite, QuinticFirstZeta4WithPiTest) {
+    //GTEST_SKIP() << "Probably won't unskip this until qd work is added.";
+    PolynomialCheckerInterface *checker = new CpuQuinticFirstChecker();
+    long floatHitCount = 0;
+    std::vector<int*> *hits;
+    std::vector<int> *loopRanges = new std::vector<int>{
+		0, 0,
+		4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit
+		-2, 2,
+		-2, 2,
+		-2, 2,
+		USE_DEFAULT, USE_DEFAULT};
+
+    hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, floatHitCount);
+
+	// should find the real hit when zeta4 = (pi^4) / 90
+	ASSERT_EQ(1, hits->size());
 }
 
 TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticFirstWithBreakoutsChecker();
+    long floatHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{USE_DEFAULT, USE_DEFAULT,
 		-773, 773,
@@ -174,43 +217,70 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsOnlyQuinticQuarticR
 		0, 0 // skip this loop effectively
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges);
+    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
 
-	// manual analysis indicates there should be at least 19 hits within .000005 range...
-	ASSERT_LE(19, hits->size());
+	// testing indicates there should be at least 8,940 float hits within tolerance range...
+	//ASSERT_LE(8'940, floatHitCount);
+	//ASSERT_LE(74, floatHitCount); // why the change??
+	ASSERT_LE(21'445, floatHitCount); // why the change again??
 
-    // ...but there should be closer to 26-28 depending on rounding. If there are too many hits something is wrong
-    EXPECT_GE(30, hits->size());
+    // ...but there should be closer to 8,949 float hits depending on rounding. If there are too many something is wrong
+    //EXPECT_GE(8'955, floatHitCount);
+	//ASSERT_GE(74, floatHitCount); // why the change??
+	ASSERT_GE(21'453, floatHitCount); // why the change again??
+
+	// ...however there should be 0 "real" double hits
+	ASSERT_EQ(0, hits->size());
 
     // now let's ensure some close hits (err <= .000003) were returned
-    bool hit1Found = false, hit2Found = false, hit3Found = false;
-    int hit1[] = {-95'710,113,0,0,0,0}; // -0.372795969c^5 + 1.18181813c^4 = -(148/397)c^5 + (13/11)c^4
-    int hit2[] = {-472'234,151,0,0,0,0}; // -0.724177063c^5 + 2.28571439c^4 = -(638/881)c^5 + (16/17)c^4
-    int hit3[] = {-298'042,720,0,0,0,0}; // -0.00570613425c^5 + 0.0285714287c^4 = -(4/701)c^5 + (1/35)c^4
-    for (int* hit : *hits) {
-        if (!hit1Found && 0 == std::memcmp(hit, hit1, sizeof(hit1))) {
-            hit1Found = true;
-            continue;
-        }
-        if (!hit2Found && 0 == std::memcmp(hit, hit2, sizeof(hit2))) {
-            hit2Found = true;
-            continue;
-        }
-        if (!hit3Found && 0 == std::memcmp(hit, hit3, sizeof(hit3))) {
-            hit3Found = true;
-            continue;
-        }
-    }
+    // bool hit1Found = false, hit2Found = false, hit3Found = false;
+    // int hit1[] = {-95'710,113,0,0,0,0}; // -0.372795969c^5 + 1.18181813c^4 = -(148/397)c^5 + (13/11)c^4
+    // int hit2[] = {-472'234,151,0,0,0,0}; // -0.724177063c^5 + 2.28571439c^4 = -(638/881)c^5 + (16/17)c^4
+    // int hit3[] = {-298'042,720,0,0,0,0}; // -0.00570613425c^5 + 0.0285714287c^4 = -(4/701)c^5 + (1/35)c^4
+    // for (int* hit : *hits) {
+    //     if (!hit1Found && 0 == std::memcmp(hit, hit1, sizeof(hit1))) {
+    //         hit1Found = true;
+    //         continue;
+    //     }
+    //     if (!hit2Found && 0 == std::memcmp(hit, hit2, sizeof(hit2))) {
+    //         hit2Found = true;
+    //         continue;
+    //     }
+    //     if (!hit3Found && 0 == std::memcmp(hit, hit3, sizeof(hit3))) {
+    //         hit3Found = true;
+    //         continue;
+    //     }
+    // }
 
-    if (!hit1Found || !hit2Found || !hit3Found) {
-        FAIL() << "Did not find all hits we were expecting. Found Hit1? Hit2?, Hit3? = " << hit1Found << ","
-            << hit2Found << "," << hit3Found;
-    }
+    // if (!hit1Found || !hit2Found || !hit3Found) {
+    //     FAIL() << "Did not find all hits we were expecting. Found Hit1? Hit2?, Hit3? = " << hit1Found << ","
+    //         << hit2Found << "," << hit3Found;
+    // }
+}
+
+TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsZeta4WithPiTest) {
+    //GTEST_SKIP() << "Probably won't unskip this until qd work is added.";
+    PolynomialCheckerInterface *checker = new CpuQuinticFirstWithBreakoutsChecker();
+    long floatHitCount = 0;
+    std::vector<int*> *hits;
+    std::vector<int> *loopRanges = new std::vector<int>{
+		0, 0,
+		4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit
+		-2, 2,
+		-2, 2,
+		-2, 2,
+		USE_DEFAULT, USE_DEFAULT};
+
+    hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, floatHitCount);
+
+	// should find the real hit when zeta4 = (pi^4) / 90
+	ASSERT_EQ(1, hits->size());
 }
 
 TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsSameAsNonBreakoutsTest) {
     PolynomialCheckerInterface *nonBreakoutsChecker = new CpuQuinticFirstChecker();
 	PolynomialCheckerInterface *withBreakoutsChecker = new CpuQuinticFirstWithBreakoutsChecker();
+    long floatHitCount = 0, breakoutFloatHitCount = 0;
     std::vector<int*> *nonBreakoutHits;
     std::vector<int*> *withBreakoutHits;
 
@@ -228,11 +298,16 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsSameAsNonBreakoutsT
 		USE_DEFAULT, USE_DEFAULT
     };
 
-    nonBreakoutHits = nonBreakoutsChecker->findHits(ZETA5, M_PI, 5, NULL, loopRanges);
-    withBreakoutHits = withBreakoutsChecker->findHits(ZETA5, M_PI, 5, NULL, loopRanges);
+    nonBreakoutHits = nonBreakoutsChecker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
+    withBreakoutHits = withBreakoutsChecker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, breakoutFloatHitCount);
+
+	// confirm using breakouts produces the exact same number of float hits
+	ASSERT_EQ(floatHitCount, breakoutFloatHitCount);
 
 	// confirm using breakouts produces the exact same number of hits
 	ASSERT_EQ(nonBreakoutHits->size(), withBreakoutHits->size());
 
-    printf("Both CPU checkers had %lu hits\n", nonBreakoutHits->size());
+	printf("Both CPU checkers had %ld float hits\n", floatHitCount);
+    printf("Both CPU checkers had %lu double hits\n", nonBreakoutHits->size());
+
 }

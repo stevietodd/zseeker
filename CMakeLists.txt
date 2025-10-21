@@ -19,7 +19,8 @@ include(GoogleTest)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   project(zseeker LANGUAGES CUDA CXX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000 -O3")
-
+  set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES /usr/include/cuda)
+  #target_include_directories(GpuPolynomialCheckerTestSuite AFTER PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
   # I need the section below to avoid getting an error for empty CUDA_ARCHITECTURES
   # TODO: Eventually on CMake 3.23 I can just use 'all' or in 3.24 'native' instead
   # of this craziness. See https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html
@@ -46,6 +47,8 @@ add_executable(
   PolynomialCheckerInterface.hpp
   CpuPolynomialChecker.hpp
   CpuQuinticLastChecker.cpp
+  CpuQuinticFirstChecker.cpp
+  CpuQuinticFirstWithBreakoutsChecker.cpp
   GpuPolynomialChecker.hpp
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
@@ -56,6 +59,7 @@ add_executable(
   test/GpuPolynomialCheckerTestSuite.cpp
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
+#   GpuNoLookupTableChecker.cu
 )
 target_link_libraries(
   GpuPolynomialCheckerTestSuite
@@ -82,6 +86,8 @@ else()
     PolynomialCheckerInterface.hpp
     CpuPolynomialChecker.hpp
     CpuQuinticLastChecker.cpp
+	CpuQuinticFirstChecker.cpp
+    CpuQuinticFirstWithBreakoutsChecker.cpp
     #GpuPolynomialChecker.hpp
     #GpuQuinticLastChecker.cu
     #GpuQuinticFirstChecker.cu
@@ -120,6 +126,15 @@ add_executable(
 target_link_libraries(
   LookupTableTestSuite
   GTest::gtest_main
+)
+
+add_executable(
+  FindConstantsThatMakeZ3
+  FindConstantsThatMakeZ3.cpp
+)
+target_link_libraries(
+  FindConstantsThatMakeZ3
+  mysqlclient
 )
 
 add_executable(
