@@ -18,7 +18,7 @@ include(GoogleTest)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   project(zseeker LANGUAGES CUDA CXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000 -Og")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000 -O3")
   set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES /usr/include/cuda)
   #target_include_directories(GpuPolynomialCheckerTestSuite AFTER PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
   # I need the section below to avoid getting an error for empty CUDA_ARCHITECTURES
