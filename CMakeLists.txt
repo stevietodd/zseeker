@@ -53,6 +53,10 @@ add_executable(
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
 )
+target_link_libraries(
+    zseeker2
+    mysqlclient
+)
 
 add_executable(
   GpuPolynomialCheckerTestSuite
@@ -91,6 +95,10 @@ else()
     #GpuPolynomialChecker.hpp
     #GpuQuinticLastChecker.cu
     #GpuQuinticFirstChecker.cu
+  )
+  target_link_libraries(
+    zseeker2
+    mysqlclient
   )
 endif()
 

@@ -1,0 +1,7 @@
+#!/bin/zsh
+
+while true; do
+  ./build/zseeker2
+
+  sleep 1
+done
