@@ -16,6 +16,38 @@ FetchContent_MakeAvailable(googletest)
 
 include(GoogleTest)
 
+set(_mysql_hint_roots
+  ${MYSQL_ROOT_DIR}
+  ${MYSQL_ROOT}
+  $ENV{MYSQL_ROOT_DIR}
+  $ENV{MYSQL_ROOT}
+  /opt/homebrew/opt/mysql-client
+  /usr/local/opt/mysql-client
+  /opt/homebrew
+  /usr/local
+  /usr
+)
+
+list(REMOVE_ITEM _mysql_hint_roots "")
+
+find_path(
+  MYSQL_INCLUDE_DIR
+  NAMES mysql/mysql.h
+  HINTS ${_mysql_hint_roots} $ENV{MYSQL_INCLUDE_DIR}
+  PATH_SUFFIXES include include/mysql
+)
+
+find_library(
+  MYSQL_LIBRARIES
+  NAMES mysqlclient
+  HINTS ${_mysql_hint_roots} $ENV{MYSQL_LIB_DIR}
+  PATH_SUFFIXES lib lib64
+)
+
+if(NOT MYSQL_INCLUDE_DIR OR NOT MYSQL_LIBRARIES)
+  message(FATAL_ERROR "Could not locate the MySQL client development files. Install the MySQL client (e.g. 'sudo apt install libmysqlclient-dev' or 'brew install mysql-client') or provide MYSQL_ROOT_DIR / MYSQL_INCLUDE_DIR / MYSQL_LIB_DIR.")
+endif()
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   project(zseeker LANGUAGES CUDA CXX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000 -O3")
@@ -53,7 +85,6 @@ add_executable(
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
 )
-
 add_executable(
   GpuPolynomialCheckerTestSuite
   test/GpuPolynomialCheckerTestSuite.cpp
@@ -132,11 +163,12 @@ add_executable(
   FindConstantsThatMakeZ3
   FindConstantsThatMakeZ3.cpp
 )
-target_link_libraries(
-  FindConstantsThatMakeZ3
-  mysqlclient
-)
-
+foreach(_mysql_target zseeker2 FindConstantsThatMakeZ3)
+  if(TARGET ${_mysql_target})
+    target_include_directories(${_mysql_target} PRIVATE ${MYSQL_INCLUDE_DIR})
+    target_link_libraries(${_mysql_target} PRIVATE ${MYSQL_LIBRARIES})
+  endif()
+endforeach()
 add_executable(
   CpuPolynomialCheckerTestSuite
   test/CpuPolynomialCheckerTestSuite.cpp
