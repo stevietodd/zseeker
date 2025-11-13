@@ -71,6 +71,7 @@ add_executable(
 	checkz3constantswithz5usingLUTandCPU.cpp
 	cudawrapper.hpp
 	checkz3constantswithz5usingLUTandGPU.cu
+    lookupTableAccessor.cpp
 )
 
 add_executable(
@@ -84,12 +85,16 @@ add_executable(
   GpuPolynomialChecker.hpp
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
+  GpuQuinticFirstWithBreakoutsChecker.cu
+  lookupTableAccessor.cpp
 )
 add_executable(
   GpuPolynomialCheckerTestSuite
   test/GpuPolynomialCheckerTestSuite.cpp
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
+  GpuQuinticFirstWithBreakoutsChecker.cu
+  lookupTableAccessor.cpp
 #   GpuNoLookupTableChecker.cu
 )
 target_link_libraries(
@@ -101,6 +106,18 @@ target_link_libraries(
 #target_compile_options(GpuPolynomialCheckerTestSuite PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:--ptxas-options=-v>)
 
 gtest_discover_tests(GpuPolynomialCheckerTestSuite)
+
+add_executable(
+  GpuQuinticFirstWithBreakoutsHarness
+  test/GpuQuinticFirstWithBreakoutsHarness.cpp
+  GpuQuinticFirstWithBreakoutsChecker.cu
+  lookupTableAccessor.cpp
+)
+target_include_directories(
+  GpuQuinticFirstWithBreakoutsHarness
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-steps=1000000000 -O3")
 

@@ -279,6 +279,9 @@ switch (argc) {
 		} else if (strcasecmp(argv[1], "gf") == 0) {
 			std::cout << "Using GpuQuinticFirst" << std::endl;
 			checker = new GpuQuinticFirstChecker();
+		} else if (strcasecmp(argv[1], "gfwb") == 0) {
+			std::cout << "Using GpuQuinticFirstWithBreakouts" << std::endl;
+			checker = new GpuQuinticFirstWithBreakoutsChecker();
 		} else if (strcasecmp(argv[1], "cl") == 0) {
 			std::cout << "Using CpuQuinticLast" << std::endl;
 			checker = new CpuQuinticLastChecker();
