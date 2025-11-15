@@ -73,37 +73,29 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
     float v0, v1, v2, v3, v4, v5;
     int *hit;
 
-	// 500 * c^4 + 100 * c^3 + 60 * c^2 + 30 * c + 15 (we test the c^5 coefficient in the loop below)
-	// note we don't need to worry about checking theConst2, theConst3, or theConst4
-	// because either theConst or theConst5 will be maximum (depending on whether theConst
-	// is less than or equal to 1)
-	float maxLowerDegreesValue = 0;
-	if (std::abs(theConstf) < 1) {
-		maxLowerDegreesValue = std::max(
-			{
-				500.0f, // largest numerical coefficient
-				(500.0f*theConst4f + 100.0f*theConst3f + 60.0f*theConst2f + 30.0f*theConstf + 15.0f)
-			}
-		);
-	} else {
-		maxLowerDegreesValue = std::max(
-			{
-				std::abs(theConst5f), // largest constant power
-				500.0f, // largest numerical coefficient
-				(500.0f*theConst4f), // could be largest if theConst is negative and 500 > theConst (thus 500c^4 > c^5),
-				(500.0f*theConst4f + 100.0f*theConst3f + 60.0f*theConst2f + 30.0f*theConstf + 15.0f)
-			}
-		);
-	}
+	// We used to do a lot of logic here for dynamic precision, but we have greatly simplified it
+	// to help with compatibility with the Gpu checker.
+	maxValue = std::max(
+		{
+			1000.0f, // largest numerical coefficient
+			(
+				1000.0f * std::abs(theConst5f) +
+				500.0f * std::abs(theConst4f) +
+				100.0f * std::abs(theConst3f) +
+				60.0f * std::abs(theConst2f) +
+				30.0f * std::abs(theConstf) +
+				15.0f
+			) // largest possible sum
+		});
+
+	floatTol = getFloatPrecisionBasedOnMaxValue(maxValue);
+	doubleTol = getDoublePrecisionBasedOnMaxValue(maxValue);
 
     std::vector<int*> *hits = new std::vector<int*>();
 
     // note that these loops use <= (less than or EQUAL TO)
     for (int u = loopStartEnds[0]; u <= loopStartEnds[1]; u++) {
         v5 = ((u < 0) ? -LUT[-u] : LUT[u]) * theConst5f;
-		maxValue = std::max({maxLowerDegreesValue, std::abs(v5), ((u < 0) ? -LUT[-u] : LUT[u])});
-		floatTol = getFloatPrecisionBasedOnMaxValue(maxValue);
-		doubleTol = getDoublePrecisionBasedOnMaxValue(maxValue);
 
         for (int v = loopStartEnds[2]; v <= loopStartEnds[3]; v++) {
             v4 = v5 + ((v < 0) ? -LUT[-v] : LUT[v]) * theConst4f;
