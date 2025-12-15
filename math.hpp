@@ -34,6 +34,7 @@ static inline float getFloatPrecisionBasedOnMaxValue(const float maxValue) {
     // note we subtract 22 instead of 23 because I am reducing the precision allowed "to be safe"
     // also note that for maxValue == 0 we use the precision for 1 to avoid returning 0 ourselves
     return pow(2, (floor(log2(abs(maxValue ?: 1))) - 22));
+	//return pow(2, (floor(log2(abs(maxValue ?: 1))) - 23));  TODO: MegaMan explore speedup with this!
 }
 
 #endif // MATH_HPP

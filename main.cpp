@@ -11,7 +11,7 @@
 #include "CpuPolynomialChecker.hpp"
 #include "GpuPolynomialChecker.hpp"
 #include "math.hpp"
-#include "lookupTable.hpp"
+#include "lookupTableAccessor.hpp"
 
 #define WORK_ITEMS_PER_QUERY 1
 
@@ -256,6 +256,28 @@ int main(int argc, char *argv[])
 			} else if (strcasecmp(argv[1], "cfwb") == 0) {
 				std::cout << "Using CpuQuinticFirstWithBreakouts" << std::endl;
 				checker = new CpuQuinticFirstWithBreakoutsChecker();
+			} else if (strcasecmp(argv[1], "megaman") == 0) {
+				std::cout << "Using Hack" << std::endl;
+				checker = new GpuQuinticFirstChecker();
+				// Create loopRanges: zStart=-5, zEnd=5, all others USE_DEFAULT
+				// Format: [zStart, zEnd, yStart, yEnd, xStart, xEnd, cubicStart, cubicEnd, quartStart, quartEnd, quintStart, quintEnd]
+				std::vector<int> loopRanges = {
+					-6, 6,  // zStart, zEnd
+					-6, 6,  // yStart, yEnd
+					USE_DEFAULT, USE_DEFAULT,  // xStart, xEnd
+					USE_DEFAULT, USE_DEFAULT,  // cubicStart, cubicEnd
+					USE_DEFAULT, USE_DEFAULT,  // quartStart, quartEnd
+					USE_DEFAULT, USE_DEFAULT   // quintStart, quintEnd
+				};
+                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
+				int *result;
+                for (int i = 0; i < hits->size(); i++) {
+                    result = hits->at(i);
+                    std::cout << "Hit = " << result[0] << "," << result[1] << "," << result[2] << "," 
+                              << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
+                }
+				delete checker;
+				return 0;
 			} else {
 				std::cout << "Could not parse checker, using CpuQuinticFirstWithBreakouts" << std::endl;
 				checker = new CpuQuinticFirstWithBreakoutsChecker();
@@ -308,7 +330,7 @@ int main(int argc, char *argv[])
                 std::cout << "\nProcessing zroot" << zrootIdx + 1 << " = " << theConst << std::endl;
                 
                 floatHitCount = 0;
-                hits = checker->findHits(ZETA5, theConst, 5, LUT.data(), NULL, floatHitCount);
+                hits = checker->findHits(ZETA5, theConst, 5, getLookupTableFloat(), NULL, floatHitCount);
                 
                 // Store the hit counts
                 floatHitCounts[zrootIdx] = floatHitCount;

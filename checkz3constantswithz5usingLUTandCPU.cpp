@@ -5,7 +5,7 @@
 #include <numeric>
 #include <limits>
 #include "cudawrapper.hpp"
-#include "lookupTable.hpp"
+#include "lookupTableAccessor.hpp"
 using namespace std;
 
 char* getCurrentTimeString() {
@@ -86,6 +86,7 @@ char* getCurrentTimeString() {
 
 void printHit(int i5, int i4, int i3, int i2, int i1, int i0)
 {
+	const float* LUT = getLookupTableFloat();
 	cout << "(" << i5 << "," << i4 << "," << i3 << "," << i2 << "," << i1 << "," << i0 << "): " <<
 		LUT[i5] << "c^5 + " << LUT[i4] << "c^4 + " << LUT[i3] << "c^3 + " << LUT[i2] << "c^2 + " <<
 		LUT[i1] << "c + " << LUT[i0] << " = HIT!\n";
@@ -133,7 +134,7 @@ int main(int argc, char *argv[])
 	vector<float> *output = new vector<float>();
 	
 	float v0, v1, v2, v3, v4, v5, valDif;
-	const float *LUTptr = LUT.data();
+	const float *LUT = getLookupTableFloat();
 	bool useGPU = true;
 
 	typedef std::numeric_limits< float > ldbl;

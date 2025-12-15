@@ -1,5 +1,5 @@
 #include "CpuPolynomialChecker.hpp"
-#include "lookupTable.hpp"
+#include "lookupTableAccessor.hpp"
 #include "math.hpp"
 #include <ctime> // can remove if getCurrentTimeString is removed
 #include <iostream> // can remove if not using cout
@@ -80,6 +80,9 @@ std::vector<int*>* CpuQuinticLastChecker::findHits(
 	doubleTol = getDoublePrecisionBasedOnMaxValue(maxValue);
 
     std::vector<int*> *hits = new std::vector<int*>();
+
+    const float* LUT = getLookupTableFloat();
+    const double* doubleLUT = getLookupTableDouble();
 
     // note that these loops use <= (less than or EQUAL TO)
     for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {

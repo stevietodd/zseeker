@@ -1,5 +1,6 @@
 #include "GpuPolynomialChecker.hpp"
 #include "math.hpp"
+#include "lookupTableAccessor.hpp"
 
 // cuda.cu
 #include "cudawrapper.hpp"
@@ -7,66 +8,119 @@
 using namespace std;
 
 // calculates val * [vector elems] and returns if close enough to needle
-template<typename T>
-__global__ static void compareToZeta5loop(int *out, const T theConst, const T needle, const T *coeffArray, const int *loopStartEnds, int *hitCount) {
-	const float theConst2 = pow(theConst, (float)2);
+__global__ static void compareToZeta5loop(int *out, const double theConst, const double needle, const float *coeffArray, const double *doubleCoeffArray, const int *loopStartEnds, int *floatHitCount, int *doubleHitCount, const double theConst2, const double theConst3, const double theConst4, const double theConst5, const float floatTol, const double doubleTol, const float v3BreakoutHigh, const float v3BreakoutLow, const float v2BreakoutHigh, const float v2BreakoutLow, const float v1BreakoutHigh, const float v1BreakoutLow) {
+	const float theConstf = (float)theConst;
+	const float theConst2f = (float)theConst2;
+	const float needlef = (float)needle;
 	float v0, v1, v2;
-// printf("hi\n");
-	const int quintInd = blockIdx.x * blockDim.x + threadIdx.x;
-	const int quartInd = blockIdx.y * blockDim.y + threadIdx.y;
-	const int cubicInd = blockIdx.z * blockDim.z + threadIdx.z;
-//int loopStartEnds[12] = {6, 7, 6, 7, 6, 7, 6, 4'412, 6, 1'116, 6, 292}; // TODO: REMOVE and add param back!
-	// const int zEnd = loopStartEnds[11];
-	// const int zStart = loopStartEnds[10];
-	const int yEnd = loopStartEnds[9];
-	const int yStart = loopStartEnds[8];
-	const int xEnd = loopStartEnds[7];
-	const int xStart = loopStartEnds[6];
-// printf("Quint = %d, quart = %d, cubic = %d\n", quintInd, quartInd, cubicInd);
-// printf("xEnd = %d, yEnd = %d, zEnd = %d\n", xEnd, yEnd, loopStartEnds[11]);
-	// breakout
-	if (quintInd > loopStartEnds[1] || quartInd > loopStartEnds[3] || cubicInd > loopStartEnds[5]) {
+
+	// Get thread indices
+	const int quintThreadIdx = blockIdx.x * blockDim.x + threadIdx.x;
+	const int quartThreadIdx = blockIdx.y * blockDim.y + threadIdx.y;
+	const int cubicThreadIdx = blockIdx.z * blockDim.z + threadIdx.z;
+
+	// Calculate ranges
+	const int quintStart = loopStartEnds[0];
+	const int quintEnd = loopStartEnds[1];
+	const int quintRange = quintEnd - quintStart + 1;
+
+	const int quartStart = loopStartEnds[2];
+	const int quartEnd = loopStartEnds[3];
+	const int quartRange = quartEnd - quartStart + 1;
+
+	const int cubicStart = loopStartEnds[4];
+	const int cubicEnd = loopStartEnds[5];
+	const int cubicRange = cubicEnd - cubicStart + 1;
+
+	// Check if thread is within range
+	if (quintThreadIdx >= quintRange || quartThreadIdx >= quartRange || cubicThreadIdx >= cubicRange) {
 		return;
 	}
 
-	const float topThreeTerms = (coeffArray[quintInd] * pow(theConst, (float)5))
-		+ (coeffArray[quartInd] * pow(theConst, (float)4))
-		+ (coeffArray[cubicInd] * pow(theConst, (float)3));
-    //T expr;
-	register int i;
+	// Map thread indices to actual coefficient indices
+	const int quintInd = quintStart + quintThreadIdx;
+	const int quartInd = quartStart + quartThreadIdx;
+	const int cubicInd = cubicStart + cubicThreadIdx;
+
+	// Get absolute values for array access and check bounds
+	const int quintAbs = (quintInd < 0) ? -quintInd : quintInd;
+	const int quartAbs = (quartInd < 0) ? -quartInd : quartInd;
+	const int cubicAbs = (cubicInd < 0) ? -cubicInd : cubicInd;
+
+	if (quintAbs >= 608'384 || quartAbs >= 608'384 || cubicAbs >= 608'384) {
+		return;
+	}
+
+	// Calculate top three terms with sign handling
+	const float topThreeTerms = (coeffArray[quintAbs] * ((quintInd < 0) ? -1.0f : 1.0f) * pow(theConstf, (float)5))
+		+ (coeffArray[quartAbs] * ((quartInd < 0) ? -1.0f : 1.0f) * pow(theConstf, (float)4))
+		+ (coeffArray[cubicAbs] * ((cubicInd < 0) ? -1.0f : 1.0f) * pow(theConstf, (float)3));
+
+	// Check v3 breakout
+	if (topThreeTerms < v3BreakoutLow || topThreeTerms > v3BreakoutHigh) {
+		return; // can't possibly get back to needle
+	}
+	
+	int i;
 	// if (quartInd % 60000 == 0 && cubicInd % 60000 == 0) {
 	// printf("Quint = %d, quart = %d, cubic = %d\n", quintInd, quartInd, cubicInd);
 	// }
-// printf("%f\n", topThreeTerms);
-// BIG TODO! these loops should be calculating z (0 power) innermost, not outermost!
 
-    // Handling arbitrary vector size
-	// // note that these loops use <= (less than or EQUAL TO)
-	for (int z = loopStartEnds[10]; z <= loopStartEnds[11]; z++) {
-	//for (int z = loopStartEnds[0]; z <= loopStartEnds[1]; z++) {
-		v0 = (z < 0) ? -coeffArray[-z] : coeffArray[z];
-		//printf("%d,", z);
-	
+	// Inner loops - note these use <= (less than or EQUAL TO)
+	// Order: x (quadratic) outermost, y (linear) middle, z (constant) innermost (matching CPU)
+	const int xStart = loopStartEnds[6];
+	const int xEnd = loopStartEnds[7];
+	const int yStart = loopStartEnds[8];
+	const int yEnd = loopStartEnds[9];
+	const int zStart = loopStartEnds[10];
+	const int zEnd = loopStartEnds[11];
+
+	for (int x = xStart; x <= xEnd; x++) {
+		const int xAbs = (x < 0) ? -x : x;
+		// Calculate v2 = topThreeTerms + quadratic term
+		v2 = topThreeTerms + ((x < 0) ? -coeffArray[xAbs] : coeffArray[xAbs]) * theConst2f;
+		// Check v2 breakout
+		if (v2 < v2BreakoutLow || v2 > v2BreakoutHigh) {
+			continue; // can't possibly get back to needle, skip to next x
+		}
+
 		for (int y = yStart; y <= yEnd; y++) {
-		//for (int y = loopStartEnds[2]; y <= loopStartEnds[3]; y++) {
-			v1 = v0 + ((y < 0) ? -coeffArray[-y] : coeffArray[y]) * theConst;
+			const int yAbs = (y < 0) ? -y : y;
+			// Calculate v1 = v2 + linear term
+			v1 = v2 + ((y < 0) ? -coeffArray[yAbs] : coeffArray[yAbs]) * theConstf;
+			// Check v1 breakout
+			if (v1 < v1BreakoutLow || v1 > v1BreakoutHigh) {
+				continue; // can't possibly get back to needle, skip to next y
+			}
 
-			for (int x = xStart; x <= xEnd; x++) {
-			//for (int x = loopStartEnds[4]; x <= loopStartEnds[5]; x++) {
-				v2 = v1 + ((x < 0) ? -coeffArray[-x] : coeffArray[x]) * theConst2;
+			for (int z = zStart; z <= zEnd; z++) {
+				const int zAbs = (z < 0) ? -z : z;
+				// Calculate v0 = v1 + constant term (final sum)
+				v0 = v1 + ((z < 0) ? -coeffArray[zAbs] : coeffArray[zAbs]);
 
-				if (FLOAT_BASICALLY_EQUAL_DEFAULT((topThreeTerms + v2), needle)) {
-					// printf("(%d,%d,%d,%d,%d,%d): %10.10lf*c^5 + %10.10lf*c^4 + %10.10lf*c^3 + %10.10lf*c^2 + %10.10lf*c + %10.10lf = HIT!\n",
-					// 	quintInd, quartInd, cubicInd, x, y, z, coeffArray[quintInd], coeffArray[quartInd],
-					// 	coeffArray[cubicInd], coeffArray[x], coeffArray[y], coeffArray[z]);
-					i = atomicAdd(hitCount, 1);
-					out[6*i] = quintInd;
-					out[(6*i) + 1] = quartInd;
-					out[(6*i) + 2] = cubicInd;
-					out[(6*i) + 3] = x;
-					out[(6*i) + 4] = y;
-					out[(6*i) + 5] = z;
-					//printf("hit, i=%d\n", i);
+				// First check with float precision (v0 is the final sum)
+				if (FLOAT_BASICALLY_EQUAL(v0, needlef, floatTol)) {
+					//atomicAdd(floatHitCount, 1); TODO: MegaMan removed 12/13/25 for testing, ADD BACK MAYBE!?
+
+					// Calculate double precision value for verification (using precomputed powers)
+					const double doubleValue = 
+						((quintInd < 0) ? -doubleCoeffArray[quintAbs] : doubleCoeffArray[quintAbs]) * theConst5
+						+ ((quartInd < 0) ? -doubleCoeffArray[quartAbs] : doubleCoeffArray[quartAbs]) * theConst4
+						+ ((cubicInd < 0) ? -doubleCoeffArray[cubicAbs] : doubleCoeffArray[cubicAbs]) * theConst3
+						+ ((x < 0) ? -doubleCoeffArray[xAbs] : doubleCoeffArray[xAbs]) * theConst2
+						+ ((y < 0) ? -doubleCoeffArray[yAbs] : doubleCoeffArray[yAbs]) * theConst
+						+ ((z < 0) ? -doubleCoeffArray[zAbs] : doubleCoeffArray[zAbs]);
+
+					// Check with double precision - only record if this passes
+					if (DOUBLE_BASICALLY_EQUAL(doubleValue, needle, doubleTol)) {
+						i = atomicAdd(doubleHitCount, 1);
+						out[6*i] = quintInd;
+						out[(6*i) + 1] = quartInd;
+						out[(6*i) + 2] = cubicInd;
+						out[(6*i) + 3] = x;
+						out[(6*i) + 4] = y;
+						out[(6*i) + 5] = z;
+					}
 				}
 			}
 		}
@@ -109,86 +163,354 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 
 	float currentQuart;
 	float quarticSum;
+	float maxValue = 0, floatTol = FLOAT_POS_ERROR_DEFAULT;
+	double doubleValue = 0, doubleTol = DOUBLE_POS_ERROR_DEFAULT;
 	const double theConst2 = powl(theConst, (double)2);
 	const double theConst3 = powl(theConst, (double)3);
 	const double theConst4 = powl(theConst, (double)4);
 	const double theConst5 = powl(theConst, (double)5);
-	const int quintLastIndex = loopStartEnds[1];
-	const int quartLastIndex = loopStartEnds[3];
-	const int cubicLastIndex = loopStartEnds[5];
+	const float needlef = (float)needle;
+	const float theConst5f = (float)theConst5;
+	const float theConst4f = (float)theConst4;
+	const float theConst3f = (float)theConst3;
+	const float theConst2f = (float)theConst2;
+	const float theConstf = (float)theConst;
+
+	// Calculate actual ranges for grid sizing
+	const int quintStart = loopStartEnds[0];
+	const int quintEnd = loopStartEnds[1];
+	const int quintRange = quintEnd - quintStart + 1;
+
+	const int quartStart = loopStartEnds[2];
+	const int quartEnd = loopStartEnds[3];
+	const int quartRange = quartEnd - quartStart + 1;
+
+	const int cubicStart = loopStartEnds[4];
+	const int cubicEnd = loopStartEnds[5];
+	const int cubicRange = cubicEnd - cubicStart + 1;
 	std::vector<int*> *results = new std::vector<int*>();
 
 	float *d_coeffArray;
+	double *d_doubleCoeffArray;
 	int *d_out;
 	int *d_loopStartEnds;
-	int *out = new int[coeffArraySize];  //NOTE! I'm making this way too large but also using 6 spots for each result returned
+	int *out = new int[coeffArraySize * 6];  // 6 spots for each result
 
 	typedef std::numeric_limits< float > ldbl;
 	cout.precision(ldbl::max_digits10);
 
-	int h_hitCount = 0;
-	int *d_hitCount = 0;
-	cudaMalloc((void**) &d_hitCount, sizeof(int));
-	cudaMemcpy(d_hitCount, &h_hitCount , sizeof(int), cudaMemcpyHostToDevice);
+	maxValue = std::max(
+		1000.0f, // largest numerical coefficient
+		(
+			1000.0f * std::abs(theConst5f) +
+			500.0f * std::abs(theConst4f) +
+			100.0f * std::abs(theConst3f) +
+			60.0f * std::abs(theConst2f) +
+			30.0f * std::abs(theConstf) +
+			15.0f
+		) // largest possible sum
+	);
 
-	// initialize output array
+	floatTol = getFloatPrecisionBasedOnMaxValue(maxValue);
+	doubleTol = getDoublePrecisionBasedOnMaxValue(maxValue);
+	printf("Float tolerance: %10.10lf, Double tolerance: %10.20lf\n", floatTol, doubleTol);
+	printf("Max value: %f\n", maxValue);
+
+	// Calculate breakout bounds (matching CPU logic)
+	// These values represent the largest coefficient per term
+	const float uplim5 = 1000.0f;
+	const float uplim4 = 500.0f;
+	const float uplim3 = 100.0f;
+	const float uplim2 = 60.0f;
+	const float uplim1 = 30.0f;
+	const float uplim0 = 15.0f;
+
+	// These values represent the largest possible sum of each term plus those below them
+	const float v0max = uplim0;
+	const float v1max = uplim1 * theConstf + v0max;
+	const float v2max = uplim2 * theConst2f + v1max;
+	const float v3max = uplim3 * theConst3f + v2max;
+
+	// Calculate breakout bounds (tolerance is set to needlef, matching CPU)
+	const float tolerance = needlef;
+	const float v1BreakoutHigh = needlef + v0max + tolerance;
+	const float v1BreakoutLow = needlef - v0max - tolerance;
+	const float v2BreakoutHigh = needlef + v1max + tolerance;
+	const float v2BreakoutLow = needlef - v1max - tolerance;
+	const float v3BreakoutHigh = needlef + v2max + tolerance;
+	const float v3BreakoutLow = needlef - v2max - tolerance;
+	printf("v3BreakoutHigh=%10.10lf, v3BreakoutLow=%10.10lf\n", v3BreakoutHigh, v3BreakoutLow);
+	printf("v2BreakoutHigh=%10.10lf, v2BreakoutLow=%10.10lf\n", v2BreakoutHigh, v2BreakoutLow);
+	printf("v1BreakoutHigh=%10.10lf, v1BreakoutLow=%10.10lf\n", v1BreakoutHigh, v1BreakoutLow);
+	printf("v0max=%10.10lf\n", v0max);
+	printf("v1max=%10.10lf\n", v1max);
+	printf("v2max=%10.10lf\n", v2max);
+	printf("v3max=%10.10lf\n", v3max);
+	printf("tolerance=%10.10lf\n", tolerance);
+	printf("needlef=%10.10lf\n", needlef);
+	printf("theConstf=%10.10lf\n", theConstf);
+	printf("theConst2f=%10.10lf\n", theConst2f);
+
+	int h_hitCount = 0;
+	int h_doubleHitCount = 0;
+	int *d_hitCount = nullptr;
+	int *d_doubleHitCount = nullptr;
+	cudaError_t err;
+	
+	// Allocate device memory with error checking
+	err = cudaMalloc((void**)&d_hitCount, sizeof(int));
+	if (err != cudaSuccess) {
+		cerr << "CUDA malloc error (d_hitCount): " << cudaGetErrorString(err) << endl;
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	err = cudaMalloc((void**)&d_doubleHitCount, sizeof(int));
+	if (err != cudaSuccess) {
+		cerr << "CUDA malloc error (d_doubleHitCount): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	err = cudaMalloc((void**)&d_coeffArray, sizeof(float) * coeffArraySize);
+	if (err != cudaSuccess) {
+		cerr << "CUDA malloc error (d_coeffArray): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	// Get double lookup table and allocate device memory
+	const double* doubleCoeffArray = getLookupTableDouble();
+	err = cudaMalloc((void**)&d_doubleCoeffArray, sizeof(double) * coeffArraySize);
+	if (err != cudaSuccess) {
+		cerr << "CUDA malloc error (d_doubleCoeffArray): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_coeffArray);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	// need 6 spots for each hit
+	err = cudaMalloc((void**)&d_out, sizeof(int) * coeffArraySize * 6);
+	if (err != cudaSuccess) {
+		cerr << "CUDA malloc error (d_out): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	err = cudaMalloc((void**)&d_loopStartEnds, sizeof(int) * 12);
+	if (err != cudaSuccess) {
+		cerr << "CUDA malloc error (d_loopStartEnds): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_out);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+
+	// Initialize output array
 	for (int o = 0; o < coeffArraySize; o++) {
 		out[o] = 0;
 	}
 
-	// Allocate device memory 
-    cudaMalloc((void**)&d_coeffArray, sizeof(float) * coeffArraySize);
-    cudaMalloc((void**)&d_out, sizeof(int) * coeffArraySize);		//TODO: Can probably make this 10% as large as quintLastIndex??
-	cudaMalloc((void**)&d_loopStartEnds, sizeof(int) * 12);
-
-	cout << "dog\n";
-
 	// Transfer data from host to device memory
-    cudaMemcpy(d_coeffArray, coeffArray, sizeof(float) * coeffArraySize, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_loopStartEnds, loopStartEnds, sizeof(int) * 12, cudaMemcpyHostToDevice);
+	err = cudaMemcpy(d_hitCount, &h_hitCount, sizeof(int), cudaMemcpyHostToDevice);
+	if (err != cudaSuccess) {
+		cerr << "CUDA memcpy error (d_hitCount init): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_loopStartEnds);
+		cudaFree(d_out);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	err = cudaMemcpy(d_doubleHitCount, &h_doubleHitCount, sizeof(int), cudaMemcpyHostToDevice);
+	if (err != cudaSuccess) {
+		cerr << "CUDA memcpy error (d_doubleHitCount init): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_loopStartEnds);
+		cudaFree(d_out);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	err = cudaMemcpy(d_coeffArray, coeffArray, sizeof(float) * coeffArraySize, cudaMemcpyHostToDevice);
+	if (err != cudaSuccess) {
+		cerr << "CUDA memcpy error (d_coeffArray): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_loopStartEnds);
+		cudaFree(d_out);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	err = cudaMemcpy(d_doubleCoeffArray, doubleCoeffArray, sizeof(double) * coeffArraySize, cudaMemcpyHostToDevice);
+	if (err != cudaSuccess) {
+		cerr << "CUDA memcpy error (d_doubleCoeffArray): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_loopStartEnds);
+		cudaFree(d_out);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	err = cudaMemcpy(d_loopStartEnds, loopStartEnds, sizeof(int) * 12, cudaMemcpyHostToDevice);
+	if (err != cudaSuccess) {
+		cerr << "CUDA memcpy error (d_loopStartEnds): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_loopStartEnds);
+		cudaFree(d_out);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
 
 	cout << "cat\n";
 
-	//int block_size = 1024;
-	// this block size setup may seem arbitrary, but the most important part is y = 8 because max grid (not block) index
-	// is 65,535 and we need 65,535 * block.y > 304,468
 	dim3 blocksizes(16, 8, 8);
-
-    //int grid_size = ((quintLastIndex + block_size) / block_size);
-	// we add 1 to each to make sure we actually do all of the work
-	dim3 gridsizes((quintLastIndex / blocksizes.x) + 1, (quartLastIndex / blocksizes.y) + 1, (cubicLastIndex / blocksizes.z) + 1);
-	cout << gridsizes.x << "," << gridsizes.y << "," << gridsizes.z << "\n";
+	dim3 gridsizes(
+		(quintRange + blocksizes.x - 1) / blocksizes.x,
+		(quartRange + blocksizes.y - 1) / blocksizes.y,
+		(cubicRange + blocksizes.z - 1) / blocksizes.z
+	);
+	cout << "Grid sizes: " << gridsizes.x << "," << gridsizes.y << "," << gridsizes.z << " (ranges: " << quintRange << "," << quartRange << "," << cubicRange << ")" << endl;
 
 	// Execute kernel
-	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, (float)theConst, (float)needle, d_coeffArray, d_loopStartEnds, d_hitCount);
-cout << cudaPeekAtLastError() << endl;
+	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst, needle, d_coeffArray, d_doubleCoeffArray, d_loopStartEnds, d_hitCount, d_doubleHitCount, theConst2, theConst3, theConst4, theConst5, floatTol, doubleTol, v3BreakoutHigh, v3BreakoutLow, v2BreakoutHigh, v2BreakoutLow, v1BreakoutHigh, v1BreakoutLow);
+	
+	// Check for kernel launch errors
+	err = cudaGetLastError();
+	if (err != cudaSuccess) {
+		cerr << "CUDA kernel launch error: " << cudaGetErrorString(err) << endl;
+		// Cleanup and return
+		cudaFree(d_loopStartEnds);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_out);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	// Synchronize and check for runtime errors
+	err = cudaDeviceSynchronize();
+	if (err != cudaSuccess) {
+		cerr << "CUDA kernel execution error: " << cudaGetErrorString(err) << endl;
+		// Cleanup and return
+		cudaFree(d_loopStartEnds);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_out);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
 	// Transfer data back to host memory
-	cudaMemcpy(&h_hitCount , d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
-	cudaMemcpy(out, d_out, sizeof(int) * coeffArraySize, cudaMemcpyDeviceToHost);
+	err = cudaMemcpy(&h_hitCount, d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
+	if (err != cudaSuccess) {
+		cerr << "CUDA memcpy error (hitCount): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_loopStartEnds);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_out);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	err = cudaMemcpy(&h_doubleHitCount, d_doubleHitCount, sizeof(int), cudaMemcpyDeviceToHost);
+	if (err != cudaSuccess) {
+		cerr << "CUDA memcpy error (doubleHitCount): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_loopStartEnds);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_out);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	// need 6 spots for each hit
+	err = cudaMemcpy(out, d_out, sizeof(int) * coeffArraySize * 6, cudaMemcpyDeviceToHost);
+	if (err != cudaSuccess) {
+		cerr << "CUDA memcpy error (out): " << cudaGetErrorString(err) << endl;
+		cudaFree(d_loopStartEnds);
+		cudaFree(d_doubleCoeffArray);
+		cudaFree(d_coeffArray);
+		cudaFree(d_out);
+		cudaFree(d_doubleHitCount);
+		cudaFree(d_hitCount);
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
 
-	cout << h_hitCount << endl;
-	cout << "YOOOO!" << endl;
+	cout << "Float hits: " << h_hitCount << ", Double hits: " << h_doubleHitCount << endl;
 
-	for (int j = 0; j < h_hitCount; j++) {
+	// Only process double-verified hits (h_doubleHitCount should equal number of results)
+	for (int j = 0; j < h_doubleHitCount; j++) {
 		//printHit(coeffArray, out[6*j], out[6*j+1], out[6*j+2], out[6*j+3], out[6*j+4], out[6*j+5]);
 		results->push_back(new int[6] {out[6*j], out[6*j+1], out[6*j+2], out[6*j+3], out[6*j+4], out[6*j+5]});
 	}
 
-	//cout << i << "\n";
-    
-	// cout << "bird\n";
-
     // Deallocate device memory
+    cudaFree(d_loopStartEnds);
+    cudaFree(d_doubleCoeffArray);
     cudaFree(d_coeffArray);
     cudaFree(d_out);
+	cudaFree(d_doubleHitCount);
 	cudaFree(d_hitCount);
-	cudaFree(d_loopStartEnds);
 
 	cout << "lizard\n";
 
-	delete out;
+	delete[] out;
 
-	floatHitCount = results->size();
+	// floatHitCount tracks all float matches, results only contains double-verified hits
+	floatHitCount = h_hitCount;
 	return results;
 
 
