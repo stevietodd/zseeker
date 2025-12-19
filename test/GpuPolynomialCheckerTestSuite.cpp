@@ -75,6 +75,7 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConf
     hits = checker->findHits(ZETA5, M_PI, 5, getLookupTableFloat(), loopRanges, floatHitCount);
 
     // various setups have netted 721 results...
+	// TODO: 12/18/25 - This test is failing because we're experimenting with not returning floatHitCounts for speedup. Need to figure out a way to test still
 	ASSERT_LE(720, hits->size());
 
     // ...but some have had as many as 727. If there are too many hits something is wrong
