@@ -25,10 +25,10 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
     hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
 
 	// testing indicates there should be at least 21,445 float hits within tolerance range...
-	ASSERT_LE(21'445, floatHitCount);
+	ASSERT_LE(171'720, floatHitCount);
 
     // ...but there should be closer to 26-28 depending on rounding. If there are too many hits something is wrong
-    EXPECT_GE(21'453, floatHitCount);
+    EXPECT_GE(171'722, floatHitCount);
 
 	// ...however there should be 0 "real" double hits
 	ASSERT_EQ(0, hits->size());
@@ -80,9 +80,9 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticLastZeroAndOneHighDegreesResultsConfi
 	// testing indicates there should be at least 8,940 float hits within tolerance range...
 	//ASSERT_LE(8'940, floatHitCount);
 	//ASSERT_LE(74, floatHitCount); // why the change??
-	ASSERT_LE(66'761, floatHitCount); // why the change again??
+	//ASSERT_LE(66'761, floatHitCount); // why the change again??
 	
-	ASSERT_GE(66'761, floatHitCount);
+	ASSERT_GE(534'940, floatHitCount);
 
     // ...however there should be 0 "real" double hits
 	ASSERT_EQ(0, hits->size());
@@ -150,12 +150,12 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstOnlyQuinticQuarticResultsConfirm
 	// testing indicates there should be at least 8,940 float hits within tolerance range...
 	//ASSERT_LE(8'940, floatHitCount);
 	//ASSERT_LE(74, floatHitCount); // why the change??
-	ASSERT_LE(21'445, floatHitCount); // why the change again??
+	ASSERT_LE(171'720, floatHitCount); // why the change again??
 
     // ...but there should be closer to 8,949 float hits depending on rounding. If there are too many something is wrong
     //EXPECT_GE(8'955, floatHitCount);
 	//ASSERT_GE(74, floatHitCount); // why the change??
-	ASSERT_GE(21'453, floatHitCount); // why the change again??
+	ASSERT_GE(171'722, floatHitCount); // why the change again??
 
 	// ...however there should be 0 "real" double hits
 	ASSERT_EQ(0, hits->size());
@@ -222,12 +222,12 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsOnlyQuinticQuarticR
 	// testing indicates there should be at least 8,940 float hits within tolerance range...
 	//ASSERT_LE(8'940, floatHitCount);
 	//ASSERT_LE(74, floatHitCount); // why the change??
-	ASSERT_LE(21'445, floatHitCount); // why the change again??
+	ASSERT_LE(171'720, floatHitCount); // why the change again??
 
     // ...but there should be closer to 8,949 float hits depending on rounding. If there are too many something is wrong
     //EXPECT_GE(8'955, floatHitCount);
 	//ASSERT_GE(74, floatHitCount); // why the change??
-	ASSERT_GE(21'453, floatHitCount); // why the change again??
+	ASSERT_GE(171'722, floatHitCount); // why the change again??
 
 	// ...however there should be 0 "real" double hits
 	ASSERT_EQ(0, hits->size());

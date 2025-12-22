@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "../math.hpp"
 #include "../GpuPolynomialChecker.hpp"
-#include "../lookupTable.hpp"
+#include "../lookupTableAccessor.hpp"
 #include <cstring>
 
 TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmTest) {
@@ -17,7 +17,7 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
 		0, 0 // skip this loop effectively
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA5, M_PI, 5, getLookupTableFloat(), loopRanges, floatHitCount);
 
     // manual analysis indicates there should be at least 19 hits within .000005 range...
 	ASSERT_LE(19, hits->size());
@@ -72,9 +72,10 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConf
 		USE_DEFAULT, USE_DEFAULT
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, LUT.data(), loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA5, M_PI, 5, getLookupTableFloat(), loopRanges, floatHitCount);
 
     // various setups have netted 721 results...
+	// TODO: 12/18/25 - This test is failing because we're experimenting with not returning floatHitCounts for speedup. Need to figure out a way to test still
 	ASSERT_LE(720, hits->size());
 
     // ...but some have had as many as 727. If there are too many hits something is wrong
@@ -113,7 +114,7 @@ TEST(GpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{-1,6,-1,6,-1,6,-1,6,-1,-1,-1,6};
 
-    hits = checker->findHits(ZETA4, M_PI, 5, LUT.data(), loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA4, M_PI, 5, getLookupTableFloat(), loopRanges, floatHitCount);
 
 // this does get the right hit when v-loop is on v=9829 which corresponds to 1/90. v5 ends up being 1.08232343 while z4 = 1.082323223
 	ASSERT_EQ(28, hits->size());

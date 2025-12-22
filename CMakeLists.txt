@@ -51,6 +51,7 @@ endif()
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   project(zseeker LANGUAGES CUDA CXX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000 -O3")
+  set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES /usr/include/cuda)
   #target_include_directories(GpuPolynomialCheckerTestSuite AFTER PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
   # I need the section below to avoid getting an error for empty CUDA_ARCHITECTURES
@@ -71,6 +72,7 @@ add_executable(
 	checkz3constantswithz5usingLUTandCPU.cpp
 	cudawrapper.hpp
 	checkz3constantswithz5usingLUTandGPU.cu
+	lookupTableAccessor.cpp
 )
 
 add_executable(
@@ -84,12 +86,14 @@ add_executable(
   GpuPolynomialChecker.hpp
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
+  lookupTableAccessor.cpp
 )
 add_executable(
   GpuPolynomialCheckerTestSuite
   test/GpuPolynomialCheckerTestSuite.cpp
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
+  lookupTableAccessor.cpp
 #   GpuNoLookupTableChecker.cu
 )
 target_link_libraries(
@@ -175,6 +179,7 @@ add_executable(
   CpuQuinticLastChecker.cpp
   CpuQuinticFirstChecker.cpp
   CpuQuinticFirstWithBreakoutsChecker.cpp
+  lookupTableAccessor.cpp
 )
 target_link_libraries(
   CpuPolynomialCheckerTestSuite

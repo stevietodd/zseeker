@@ -11,7 +11,9 @@
 #include "CpuPolynomialChecker.hpp"
 #include "GpuPolynomialChecker.hpp"
 #include "math.hpp"
-#include "lookupTable.hpp"
+#include "lookupTableAccessor.hpp"
+
+#define WORK_ITEMS_PER_QUERY 1
 
 // Structure to hold work data from the database
 struct WorkItem {
@@ -102,10 +104,10 @@ double fetchTheConstFromDatabase(MYSQL* mysql) {
 std::vector<WorkItem> getWorkToBeDone(MYSQL* mysql) {
     std::vector<WorkItem> workItems;
     
-    // Step 1: Query roots_checked for rows where is_started = 0 with limit 10
-    const char* query = "SELECT id FROM roots_checked WHERE is_started = 0 ORDER BY id ASC LIMIT 10";
+    // Step 1: Query for batch of roots_checked rows where is_started = 0
+    std::string query = "SELECT id FROM roots_checked WHERE is_started = 0 ORDER BY id ASC LIMIT " + std::to_string(WORK_ITEMS_PER_QUERY);
     
-    if (mysql_query(mysql, query)) {
+    if (mysql_query(mysql, query.c_str())) {
         std::cerr << "Error: mysql_query failed: " << mysql_error(mysql) << std::endl;
         return workItems;
     }
@@ -235,6 +237,61 @@ int main(int argc, char *argv[])
 	typedef std::numeric_limits< float > ldbl;
 	std::cout.precision(ldbl::max_digits10);
 
+	// Parse checker type from command line arguments
+	switch (argc) {
+		case 2:
+		{
+			if (strcasecmp(argv[1], "gl") == 0) {
+				std::cout << "Using GpuQuinticLast" << std::endl;
+				checker = new GpuQuinticLastChecker();
+			} else if (strcasecmp(argv[1], "gf") == 0) {
+				std::cout << "Using GpuQuinticFirst" << std::endl;
+				checker = new GpuQuinticFirstChecker();
+			} else if (strcasecmp(argv[1], "cl") == 0) {
+				std::cout << "Using CpuQuinticLast" << std::endl;
+				checker = new CpuQuinticLastChecker();
+			} else if (strcasecmp(argv[1], "cf") == 0) {
+				std::cout << "Using CpuQuinticFirst" << std::endl;
+				checker = new CpuQuinticFirstChecker();
+			} else if (strcasecmp(argv[1], "cfwb") == 0) {
+				std::cout << "Using CpuQuinticFirstWithBreakouts" << std::endl;
+				checker = new CpuQuinticFirstWithBreakoutsChecker();
+			} else if (strcasecmp(argv[1], "megaman") == 0) {
+				std::cout << "Using Hack" << std::endl;
+				checker = new GpuQuinticFirstChecker();
+				// Create loopRanges: zStart=-5, zEnd=5, all others USE_DEFAULT
+				// Format: [zStart, zEnd, yStart, yEnd, xStart, xEnd, cubicStart, cubicEnd, quartStart, quartEnd, quintStart, quintEnd]
+				std::vector<int> loopRanges = {
+					-6, 6,  // zStart, zEnd
+					-6, 6,  // yStart, yEnd
+					USE_DEFAULT, USE_DEFAULT,  // xStart, xEnd
+					USE_DEFAULT, USE_DEFAULT,  // cubicStart, cubicEnd
+					USE_DEFAULT, USE_DEFAULT,  // quartStart, quartEnd
+					USE_DEFAULT, USE_DEFAULT   // quintStart, quintEnd
+				};
+                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
+				int *result;
+                for (int i = 0; i < hits->size(); i++) {
+                    result = hits->at(i);
+                    std::cout << "Hit = " << result[0] << "," << result[1] << "," << result[2] << "," 
+                              << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
+                }
+				delete checker;
+				return 0;
+			} else {
+				std::cout << "Could not parse checker, using CpuQuinticFirstWithBreakouts" << std::endl;
+				checker = new CpuQuinticFirstWithBreakoutsChecker();
+			}
+			break;
+		}
+		default:
+		{
+			std::cout << "No checker specified: using CpuQuinticFirstWithBreakouts" << std::endl;
+			checker = new CpuQuinticFirstWithBreakoutsChecker();
+			break;
+		}
+	}
+
     // Initialize MySQL connection and fetch theConst from database
     MySQLConfig config; // This will read from environment variables and validate them
     MYSQL* mysql = initializeMySQLConnection(config);
@@ -269,44 +326,11 @@ int main(int argc, char *argv[])
         
         for (int zrootIdx = 0; zrootIdx < 3; ++zrootIdx) {
             if (zroots[zrootIdx].has_value()) {
-// Parse checker type from command line arguments
-switch (argc) {
-	case 2:
-	{
-		if (strcasecmp(argv[1], "gl") == 0) {
-			std::cout << "Using GpuQuinticLast" << std::endl;
-			checker = new GpuQuinticLastChecker();
-		} else if (strcasecmp(argv[1], "gf") == 0) {
-			std::cout << "Using GpuQuinticFirst" << std::endl;
-			checker = new GpuQuinticFirstChecker();
-		} else if (strcasecmp(argv[1], "cl") == 0) {
-			std::cout << "Using CpuQuinticLast" << std::endl;
-			checker = new CpuQuinticLastChecker();
-		} else if (strcasecmp(argv[1], "cf") == 0) {
-			std::cout << "Using CpuQuinticFirst" << std::endl;
-			checker = new CpuQuinticFirstChecker();
-		} else if (strcasecmp(argv[1], "cfwb") == 0) {
-			std::cout << "Using CpuQuinticFirstWithBreakouts" << std::endl;
-			checker = new CpuQuinticFirstWithBreakoutsChecker();
-		} else {
-			std::cout << "Could not parse checker, using CpuQuinticFirstWithBreakouts" << std::endl;
-			checker = new CpuQuinticFirstWithBreakoutsChecker();
-		}
-		break;
-	}
-	default:
-	{
-		std::cout << "No checker specified: using CpuQuinticFirstWithBreakouts" << std::endl;
-		checker = new CpuQuinticFirstWithBreakoutsChecker();
-		break;
-	}
-}
-
                 theConst = zroots[zrootIdx].value();
                 std::cout << "\nProcessing zroot" << zrootIdx + 1 << " = " << theConst << std::endl;
                 
                 floatHitCount = 0;
-                hits = checker->findHits(ZETA5, theConst, 5, LUT.data(), NULL, floatHitCount);
+                hits = checker->findHits(ZETA5, theConst, 5, getLookupTableFloat(), NULL, floatHitCount);
                 
                 // Store the hit counts
                 floatHitCounts[zrootIdx] = floatHitCount;
