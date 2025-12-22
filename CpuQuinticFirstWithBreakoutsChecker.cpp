@@ -135,7 +135,7 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
         }
 
         for (int v = loopStartEnds[2]; v <= loopStartEnds[3]; v++) {
-			//if (std::abs(v) % 1'000 == 0) printf("v=%d (about 10%% done)\n", v);
+			if (std::abs(v) % 1'000 == 0) printf("v=%d (about 10%% done)\n", v);
             v4 = v5 + ((v < 0) ? -LUT[-v] : LUT[v]) * theConst4f;
             if (v4 < v4BreakoutLow || v4 > v4BreakoutHigh) {
 				// we can't possibly get back to the needle, so bust out
