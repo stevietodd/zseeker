@@ -9,27 +9,41 @@ using namespace std;
 
 // calculates val * [vector elems] and returns if close enough to needle
 __global__ static void compareToZeta5loop(int *out, const double theConst, const double needle, const float *coeffArray, const double *doubleCoeffArray, const int *loopStartEnds, int *floatHitCount, int *doubleHitCount, const double theConst2, const double theConst3, const double theConst4, const double theConst5, const float floatTol, const double doubleTol, const float v3BreakoutHigh, const float v3BreakoutLow, const float v2BreakoutHigh, const float v2BreakoutLow, const float v1BreakoutHigh, const float v1BreakoutLow) {
+	// Shared memory cache for loopStartEnds (all threads in block read same values, reduces global memory traffic)
+	__shared__ int s_loopStartEnds[12];
+	// TODO: MegaMan maybe experiement to see if this shared memory voodoo actually helps speed up the kernel
+	// First thread in block loads loopStartEnds into shared memory
+	if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0) {
+		for (int i = 0; i < 12; i++) {
+			s_loopStartEnds[i] = loopStartEnds[i];
+		}
+	}
+	__syncthreads();
+	
+	// Precompute float constants from precomputed double powers (avoid expensive pow() calls)
 	const float theConstf = (float)theConst;
 	const float theConst2f = (float)theConst2;
+	const float theConst3f = (float)theConst3;
+	const float theConst4f = (float)theConst4;
+	const float theConst5f = (float)theConst5;
 	const float needlef = (float)needle;
-	float v0, v1, v2;
 
 	// Get thread indices
 	const int quintThreadIdx = blockIdx.x * blockDim.x + threadIdx.x;
 	const int quartThreadIdx = blockIdx.y * blockDim.y + threadIdx.y;
 	const int cubicThreadIdx = blockIdx.z * blockDim.z + threadIdx.z;
 
-	// Calculate ranges
-	const int quintStart = loopStartEnds[0];
-	const int quintEnd = loopStartEnds[1];
+	// Calculate ranges from shared memory (faster than global memory)
+	const int quintStart = s_loopStartEnds[0];
+	const int quintEnd = s_loopStartEnds[1];
 	const int quintRange = quintEnd - quintStart + 1;
 
-	const int quartStart = loopStartEnds[2];
-	const int quartEnd = loopStartEnds[3];
+	const int quartStart = s_loopStartEnds[2];
+	const int quartEnd = s_loopStartEnds[3];
 	const int quartRange = quartEnd - quartStart + 1;
 
-	const int cubicStart = loopStartEnds[4];
-	const int cubicEnd = loopStartEnds[5];
+	const int cubicStart = s_loopStartEnds[4];
+	const int cubicEnd = s_loopStartEnds[5];
 	const int cubicRange = cubicEnd - cubicStart + 1;
 
 	// Check if thread is within range
@@ -47,38 +61,36 @@ __global__ static void compareToZeta5loop(int *out, const double theConst, const
 	const int quartAbs = (quartInd < 0) ? -quartInd : quartInd;
 	const int cubicAbs = (cubicInd < 0) ? -cubicInd : cubicInd;
 
+	// this is just a sanity check to make sure we don't access out of bounds
 	if (quintAbs >= 608'384 || quartAbs >= 608'384 || cubicAbs >= 608'384) {
 		return;
 	}
 
-	// Calculate top three terms with sign handling
-	const float topThreeTerms = (coeffArray[quintAbs] * ((quintInd < 0) ? -1.0f : 1.0f) * pow(theConstf, (float)5))
-		+ (coeffArray[quartAbs] * ((quartInd < 0) ? -1.0f : 1.0f) * pow(theConstf, (float)4))
-		+ (coeffArray[cubicAbs] * ((cubicInd < 0) ? -1.0f : 1.0f) * pow(theConstf, (float)3));
+	// Calculate top three terms using precomputed powers (much faster than pow())
+	const float topThreeTerms =(coeffArray[quintAbs] * ((quintInd < 0) ? -1.0f : 1.0f) * theConst5f)
+		+ (coeffArray[quartAbs] * ((quartInd < 0) ? -1.0f : 1.0f) * theConst4f)
+		+ (coeffArray[cubicAbs] * ((cubicInd < 0) ? -1.0f : 1.0f) * theConst3f);
 
 	// Check v3 breakout
 	if (topThreeTerms < v3BreakoutLow || topThreeTerms > v3BreakoutHigh) {
 		return; // can't possibly get back to needle
 	}
-	
-	int i;
-	// if (quartInd % 60000 == 0 && cubicInd % 60000 == 0) {
-	// printf("Quint = %d, quart = %d, cubic = %d\n", quintInd, quartInd, cubicInd);
-	// }
 
 	// Inner loops - note these use <= (less than or EQUAL TO)
 	// Order: x (quadratic) outermost, y (linear) middle, z (constant) innermost (matching CPU)
-	const int xStart = loopStartEnds[6];
-	const int xEnd = loopStartEnds[7];
-	const int yStart = loopStartEnds[8];
-	const int yEnd = loopStartEnds[9];
-	const int zStart = loopStartEnds[10];
-	const int zEnd = loopStartEnds[11];
+	const int xStart = s_loopStartEnds[6];
+	const int xEnd = s_loopStartEnds[7];
+	const int yStart = s_loopStartEnds[8];
+	const int yEnd = s_loopStartEnds[9];
+	const int zStart = s_loopStartEnds[10];
+	const int zEnd = s_loopStartEnds[11];
 
+	float v0, v1, v2;
 	for (int x = xStart; x <= xEnd; x++) {
 		const int xAbs = (x < 0) ? -x : x;
 		// Calculate v2 = topThreeTerms + quadratic term
-		v2 = topThreeTerms + ((x < 0) ? -coeffArray[xAbs] : coeffArray[xAbs]) * theConst2f;
+		v2 = topThreeTerms + (coeffArray[xAbs] * ((x < 0) ? -1.0f : 1.0f) * theConst2f);
+		
 		// Check v2 breakout
 		if (v2 < v2BreakoutLow || v2 > v2BreakoutHigh) {
 			continue; // can't possibly get back to needle, skip to next x
@@ -87,7 +99,8 @@ __global__ static void compareToZeta5loop(int *out, const double theConst, const
 		for (int y = yStart; y <= yEnd; y++) {
 			const int yAbs = (y < 0) ? -y : y;
 			// Calculate v1 = v2 + linear term
-			v1 = v2 + ((y < 0) ? -coeffArray[yAbs] : coeffArray[yAbs]) * theConstf;
+			v1 = v2 + (coeffArray[yAbs] * ((y < 0) ? -1.0f : 1.0f) * theConstf);
+			
 			// Check v1 breakout
 			if (v1 < v1BreakoutLow || v1 > v1BreakoutHigh) {
 				continue; // can't possibly get back to needle, skip to next y
@@ -96,24 +109,24 @@ __global__ static void compareToZeta5loop(int *out, const double theConst, const
 			for (int z = zStart; z <= zEnd; z++) {
 				const int zAbs = (z < 0) ? -z : z;
 				// Calculate v0 = v1 + constant term (final sum)
-				v0 = v1 + ((z < 0) ? -coeffArray[zAbs] : coeffArray[zAbs]);
+				v0 = v1 + (coeffArray[zAbs] * ((z < 0) ? -1.0f : 1.0f));
 
 				// First check with float precision (v0 is the final sum)
 				if (FLOAT_BASICALLY_EQUAL(v0, needlef, floatTol)) {
-					//atomicAdd(floatHitCount, 1); TODO: MegaMan removed 12/13/25 for testing, ADD BACK MAYBE!?
+					//atomicAdd(floatHitCount, 1); TODO: MegaMan removed 12/13/25 for testing if this speeds up, ADD BACK MAYBE!?
 
 					// Calculate double precision value for verification (using precomputed powers)
 					const double doubleValue = 
-						((quintInd < 0) ? -doubleCoeffArray[quintAbs] : doubleCoeffArray[quintAbs]) * theConst5
-						+ ((quartInd < 0) ? -doubleCoeffArray[quartAbs] : doubleCoeffArray[quartAbs]) * theConst4
-						+ ((cubicInd < 0) ? -doubleCoeffArray[cubicAbs] : doubleCoeffArray[cubicAbs]) * theConst3
-						+ ((x < 0) ? -doubleCoeffArray[xAbs] : doubleCoeffArray[xAbs]) * theConst2
-						+ ((y < 0) ? -doubleCoeffArray[yAbs] : doubleCoeffArray[yAbs]) * theConst
-						+ ((z < 0) ? -doubleCoeffArray[zAbs] : doubleCoeffArray[zAbs]);
+						(doubleCoeffArray[quintAbs] * ((quintInd < 0) ? -1.0f : 1.0f) * theConst5)	
+						+ (doubleCoeffArray[quartAbs] * ((quartInd < 0) ? -1.0f : 1.0f) * theConst4)
+						+ (doubleCoeffArray[cubicAbs] * ((cubicInd < 0) ? -1.0f : 1.0f) * theConst3)
+						+ (doubleCoeffArray[xAbs] * ((x < 0) ? -1.0f : 1.0f) * theConst2)
+						+ (doubleCoeffArray[yAbs] * ((y < 0) ? -1.0f : 1.0f) * theConst)
+						+ (doubleCoeffArray[zAbs] * ((z < 0) ? -1.0f : 1.0f));
 
 					// Check with double precision - only record if this passes
 					if (DOUBLE_BASICALLY_EQUAL(doubleValue, needle, doubleTol)) {
-						i = atomicAdd(doubleHitCount, 1);
+						const int i = atomicAdd(doubleHitCount, 1);
 						out[6*i] = quintInd;
 						out[(6*i) + 1] = quartInd;
 						out[(6*i) + 2] = cubicInd;
@@ -161,10 +174,9 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 // HUGE TODO: Just trying to get to compile on 9/24/25 so changed parameters needle and theConst to double above but have not changed anything below this line to accomodate
 // (except casting as float so GPU call would stay the same)
 
-	float currentQuart;
-	float quarticSum;
+
 	float maxValue = 0, floatTol = FLOAT_POS_ERROR_DEFAULT;
-	double doubleValue = 0, doubleTol = DOUBLE_POS_ERROR_DEFAULT;
+	double doubleTol = DOUBLE_POS_ERROR_DEFAULT;
 	const double theConst2 = powl(theConst, (double)2);
 	const double theConst3 = powl(theConst, (double)3);
 	const double theConst4 = powl(theConst, (double)4);
@@ -232,7 +244,7 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 	const float v3max = uplim3 * theConst3f + v2max;
 
 	// Calculate breakout bounds (tolerance is set to needlef, matching CPU)
-	const float tolerance = needlef;
+	const float tolerance = std::abs(needlef);
 	const float v1BreakoutHigh = needlef + v0max + tolerance;
 	const float v1BreakoutLow = needlef - v0max - tolerance;
 	const float v2BreakoutHigh = needlef + v1max + tolerance;
@@ -251,16 +263,35 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 	printf("theConstf=%10.10lf\n", theConstf);
 	printf("theConst2f=%10.10lf\n", theConst2f);
 
+	// Initialize CUDA device (ensures proper initialization before API calls)
+	cudaError_t err = cudaSetDevice(0);
+	if (err != cudaSuccess) {
+		cerr << "CUDA device initialization error: " << cudaGetErrorString(err) << " (code: " << err << ")" << endl;
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
+	// Get device properties to verify compatibility
+	cudaDeviceProp prop;
+	err = cudaGetDeviceProperties(&prop, 0);
+	if (err != cudaSuccess) {
+		cerr << "CUDA get device properties error: " << cudaGetErrorString(err) << " (code: " << err << ")" << endl;
+		delete[] out;
+		floatHitCount = 0;
+		return results;
+	}
+	
 	int h_hitCount = 0;
 	int h_doubleHitCount = 0;
 	int *d_hitCount = nullptr;
 	int *d_doubleHitCount = nullptr;
-	cudaError_t err;
 	
 	// Allocate device memory with error checking
 	err = cudaMalloc((void**)&d_hitCount, sizeof(int));
 	if (err != cudaSuccess) {
-		cerr << "CUDA malloc error (d_hitCount): " << cudaGetErrorString(err) << endl;
+		cerr << "CUDA malloc error (d_hitCount): " << cudaGetErrorString(err) << " (error code: " << err << ")" << endl;
+		cerr << "Device: " << prop.name << ", Compute Capability: " << prop.major << "." << prop.minor << endl;
 		delete[] out;
 		floatHitCount = 0;
 		return results;
@@ -402,7 +433,10 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 
 	cout << "cat\n";
 
-	dim3 blocksizes(16, 8, 8);
+	// Optimized block size: (8, 8, 16) = 1024 threads
+	// This reduces register pressure compared to (16, 8, 8) while maintaining same thread count
+	// Smaller x dimension can help with memory coalescing patterns
+	dim3 blocksizes(8, 8, 16);
 	dim3 gridsizes(
 		(quintRange + blocksizes.x - 1) / blocksizes.x,
 		(quartRange + blocksizes.y - 1) / blocksizes.y,
@@ -410,13 +444,22 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 	);
 	cout << "Grid sizes: " << gridsizes.x << "," << gridsizes.y << "," << gridsizes.z << " (ranges: " << quintRange << "," << quartRange << "," << cubicRange << ")" << endl;
 
-	// Execute kernel
+	// Create CUDA events for kernel timing
+	cudaEvent_t kernelStart, kernelStop;
+	cudaEventCreate(&kernelStart);
+	cudaEventCreate(&kernelStop);
+	
+	// Execute kernel with timing
+	cudaEventRecord(kernelStart);
 	compareToZeta5loop<<<gridsizes, blocksizes>>>(d_out, theConst, needle, d_coeffArray, d_doubleCoeffArray, d_loopStartEnds, d_hitCount, d_doubleHitCount, theConst2, theConst3, theConst4, theConst5, floatTol, doubleTol, v3BreakoutHigh, v3BreakoutLow, v2BreakoutHigh, v2BreakoutLow, v1BreakoutHigh, v1BreakoutLow);
+	cudaEventRecord(kernelStop);
 	
 	// Check for kernel launch errors
 	err = cudaGetLastError();
 	if (err != cudaSuccess) {
 		cerr << "CUDA kernel launch error: " << cudaGetErrorString(err) << endl;
+		cudaEventDestroy(kernelStart);
+		cudaEventDestroy(kernelStop);
 		// Cleanup and return
 		cudaFree(d_loopStartEnds);
 		cudaFree(d_doubleCoeffArray);
@@ -433,6 +476,8 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 	err = cudaDeviceSynchronize();
 	if (err != cudaSuccess) {
 		cerr << "CUDA kernel execution error: " << cudaGetErrorString(err) << endl;
+		cudaEventDestroy(kernelStart);
+		cudaEventDestroy(kernelStop);
 		// Cleanup and return
 		cudaFree(d_loopStartEnds);
 		cudaFree(d_doubleCoeffArray);
@@ -444,6 +489,13 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 		floatHitCount = 0;
 		return results;
 	}
+	
+	// Calculate and print kernel execution time - TODO: Remove this later to see if it helps with speed?
+	float kernelTimeMs = 0.0f;
+	cudaEventElapsedTime(&kernelTimeMs, kernelStart, kernelStop);
+	cout << "Kernel execution time: " << kernelTimeMs << " ms" << endl;
+	cudaEventDestroy(kernelStart);
+	cudaEventDestroy(kernelStop);
 	
 	// Transfer data back to host memory
 	err = cudaMemcpy(&h_hitCount, d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);

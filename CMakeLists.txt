@@ -68,11 +68,11 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   SET(CMAKE_CUDA_ARCHITECTURES 75) # hard-coding this to my local GPU arch so I can build my docker images for it, can remove later maybe?
 
 add_executable(
-	zseeker
-	checkz3constantswithz5usingLUTandCPU.cpp
-	cudawrapper.hpp
-	checkz3constantswithz5usingLUTandGPU.cu
-	lookupTableAccessor.cpp
+  zseeker
+  checkz3constantswithz5usingLUTandCPU.cpp
+  cudawrapper.hpp
+  checkz3constantswithz5usingLUTandGPU.cu
+  lookupTableAccessor.cpp
 )
 
 add_executable(
@@ -86,6 +86,7 @@ add_executable(
   GpuPolynomialChecker.hpp
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
+  GpuQuinticFirstCheckerPositiveOnly.cu
   lookupTableAccessor.cpp
 )
 add_executable(
@@ -93,6 +94,7 @@ add_executable(
   test/GpuPolynomialCheckerTestSuite.cpp
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
+  GpuQuinticFirstCheckerPositiveOnly.cu
   lookupTableAccessor.cpp
 #   GpuNoLookupTableChecker.cu
 )
@@ -121,7 +123,7 @@ else()
     PolynomialCheckerInterface.hpp
     CpuPolynomialChecker.hpp
     CpuQuinticLastChecker.cpp
-	CpuQuinticFirstChecker.cpp
+    CpuQuinticFirstChecker.cpp
     CpuQuinticFirstWithBreakoutsChecker.cpp
     #GpuPolynomialChecker.hpp
     #GpuQuinticLastChecker.cu
