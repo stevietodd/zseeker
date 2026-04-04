@@ -305,6 +305,67 @@ int main(int argc, char *argv[])
                 }
                 delete checker;
                 return 0;
+			} else if (strcasecmp(argv[1], "megaman3") == 0) {
+                std::cout << "Using Positive-OnlyHackTOPFOUR" << std::endl;
+                checker = new GpuQuinticFirstCheckerPositiveOnlyTopFour();
+                // Create loopRanges: zStart=-5, zEnd=5, all others USE_DEFAULT
+                // Format: [zStart, zEnd, yStart, yEnd, xStart, xEnd, cubicStart, cubicEnd, quartStart, quartEnd, quintStart, quintEnd]
+                std::vector<int> loopRanges = {
+                    -6, 6,  // zStart, zEnd
+                    -6, 6,  // yStart, yEnd
+                    USE_DEFAULT, USE_DEFAULT,  // xStart, xEnd
+                    USE_DEFAULT, USE_DEFAULT,  // cubicStart, cubicEnd
+                    USE_DEFAULT, USE_DEFAULT,  // quartStart, quartEnd
+                    USE_DEFAULT, USE_DEFAULT   // quintStart, quintEnd
+                };
+                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
+                int *result;
+                for (int i = 0; i < hits->size(); i++) {
+                    result = hits->at(i);
+                    checker->printHit(getLookupTableDouble(), result[0], result[1], result[2], result[3], result[4], result[5]);
+                    // std::cout << "Hit = " << result[0] << "," << result[1] << "," << result[2] << "," 
+                    //           << result[3] << "," << result[4] << "," << result[5] << "," << std::endl;
+                }
+                delete checker;
+                return 0;
+            } else if (strcasecmp(argv[1], "megaman4") == 0) {
+                std::cout << "Using Positive-OnlyHack TOPFIVE (y in launch)" << std::endl;
+                checker = new GpuQuinticFirstCheckerPositiveOnlyTopFive();
+                std::vector<int> loopRanges = {
+                    0, 0,
+                    USE_DEFAULT, USE_DEFAULT, // NOT SAME AS OTHERS, MEGAMAN!
+                    USE_DEFAULT, USE_DEFAULT,
+                    USE_DEFAULT, USE_DEFAULT,
+                    USE_DEFAULT, USE_DEFAULT,
+                    USE_DEFAULT, USE_DEFAULT
+                };
+                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
+                int *result;
+                for (int i = 0; i < hits->size(); i++) {
+                    result = hits->at(i);
+                    checker->printHit(getLookupTableDouble(), result[0], result[1], result[2], result[3], result[4], result[5]);
+                }
+                delete checker;
+                return 0;
+            } else if (strcasecmp(argv[1], "megaman5") == 0) {
+                std::cout << "Using Positive-OnlyHack TOPSIX (y+z in launch)" << std::endl;
+                checker = new GpuQuinticFirstCheckerPositiveOnlyTopSix();
+                std::vector<int> loopRanges = {
+                    -6, 6,
+                    -6, 6,
+                    USE_DEFAULT, USE_DEFAULT,
+                    USE_DEFAULT, USE_DEFAULT,
+                    USE_DEFAULT, USE_DEFAULT,
+                    USE_DEFAULT, USE_DEFAULT
+                };
+                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
+                int *result;
+                for (int i = 0; i < hits->size(); i++) {
+                    result = hits->at(i);
+                    checker->printHit(getLookupTableDouble(), result[0], result[1], result[2], result[3], result[4], result[5]);
+                }
+                delete checker;
+                return 0;
             } else {
                 std::cout << "Could not parse checker, using CpuQuinticFirstWithBreakouts" << std::endl;
                 checker = new CpuQuinticFirstWithBreakoutsChecker();

@@ -87,6 +87,9 @@ add_executable(
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
   GpuQuinticFirstCheckerPositiveOnly.cu
+  GpuQuinticFirstCheckerPositiveOnlyTopFour.cu
+  GpuQuinticFirstCheckerPositiveOnlyTopFive.cu
+  GpuQuinticFirstCheckerPositiveOnlyTopSix.cu
   lookupTableAccessor.cpp
 )
 add_executable(
@@ -95,6 +98,9 @@ add_executable(
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
   GpuQuinticFirstCheckerPositiveOnly.cu
+  GpuQuinticFirstCheckerPositiveOnlyTopFour.cu
+  GpuQuinticFirstCheckerPositiveOnlyTopFive.cu
+  GpuQuinticFirstCheckerPositiveOnlyTopSix.cu
   lookupTableAccessor.cpp
 #   GpuNoLookupTableChecker.cu
 )

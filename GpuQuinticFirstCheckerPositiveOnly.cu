@@ -9,7 +9,28 @@ using namespace std;
 
 // Positive-only quint loop variant: loops 0..quintEnd, compares against both needle and -needle.
 // When v0 matches -needle, records -quintInd in output (the negative solution).
-__global__ static void compareToZeta5loopPositiveOnly(int *out, const double theConst, const double needle, const float *coeffArray, const double *doubleCoeffArray, const int *loopStartEnds, int *floatHitCount, int *doubleHitCount, const double theConst2, const double theConst3, const double theConst4, const double theConst5, const float floatTol, const double doubleTol, const float v3BreakoutHigh, const float v3BreakoutLow, const float v2BreakoutHigh, const float v2BreakoutLow, const float v1BreakoutHigh, const float v1BreakoutLow) {
+__global__ static void compareToZeta5loopPositiveOnly(
+    int *__restrict__ out,
+    const double theConst,
+    const double needle,
+    const float *__restrict__ coeffArray,
+    const double *__restrict__ doubleCoeffArray,
+    const int *__restrict__ loopStartEnds,
+    int *__restrict__ floatHitCount,
+    int *__restrict__ doubleHitCount,
+    const double theConst2,
+    const double theConst3,
+    const double theConst4,
+    const double theConst5,
+    const float floatTol,
+    const double doubleTol,
+    const float v3BreakoutHigh,
+    const float v3BreakoutLow,
+    const float v2BreakoutHigh,
+    const float v2BreakoutLow,
+    const float v1BreakoutHigh,
+    const float v1BreakoutLow
+) {
     // Shared memory cache for loopStartEnds (all threads in block read same values, reduces global memory traffic)
     __shared__ int s_loopStartEnds[12];
     // TODO: MegaMan maybe experiement to see if this shared memory voodoo actually helps speed up the kernel
@@ -71,17 +92,25 @@ __global__ static void compareToZeta5loopPositiveOnly(int *out, const double the
         return;
     }
 
+    // quintInd is always >= 0 for this positive-only variant (quintStart forced to 0 on host),
+    // so the quint sign is +1. quart/cubic can be negative depending on thread indices.
+    const float quartSignF = (quartInd < 0) ? -1.0f : 1.0f;
+    const float cubicSignF = (cubicInd < 0) ? -1.0f : 1.0f;
+    const double quartSignD = (quartInd < 0) ? -1.0 : 1.0;
+    const double cubicSignD = (cubicInd < 0) ? -1.0 : 1.0;
+
     // When quintInd == 0 the quintic term is zero; (0,q,c,...) and (0,-q,-c,...) are the same polynomial up to sign.
     // Skip the negative half of (quart,cubic) so we do half the work for the quint==0 slice.
     // We also skip the negative half of (cubic) if quint==0 and quart==0 since we've already visited the positive half.
     if (quintInd == 0 && quartInd < 0) return;
     if (quintInd == 0 && quartInd == 0 && cubicInd < 0) return;
 
-    // Calculate top three terms using precomputed powers (much faster than pow())
-    // NOTE: quintSign should always be 1 since quintInd >= 0 but we check anyway
-    const float topThreeTerms =(coeffArray[quintAbs] * ((quintInd < 0) ? -1.0f : 1.0f) * theConst5f)
-        + (coeffArray[quartAbs] * ((quartInd < 0) ? -1.0f : 1.0f) * theConst4f)
-        + (coeffArray[cubicAbs] * ((cubicInd < 0) ? -1.0f : 1.0f) * theConst3f);
+    // Calculate top three terms using precomputed powers (much faster than pow()).
+    // Use read-only cache (_ldg) for LUT loads.
+    const float topThreeTerms =
+        (__ldg(&coeffArray[quintAbs]) * theConst5f)
+        + (__ldg(&coeffArray[quartAbs]) * quartSignF * theConst4f)
+        + (__ldg(&coeffArray[cubicAbs]) * cubicSignF * theConst3f);
 
     // Check v3 breakout
     if (topThreeTerms < v3BreakoutLow || topThreeTerms > v3BreakoutHigh) {
@@ -100,8 +129,10 @@ __global__ static void compareToZeta5loopPositiveOnly(int *out, const double the
     float v0, v1, v2;
     for (int x = xStart; x <= xEnd; x++) {
         const int xAbs = (x < 0) ? -x : x;
+        const float xSignF = (x < 0) ? -1.0f : 1.0f;
+        const double xSignD = (x < 0) ? -1.0 : 1.0;
         // Calculate v2 = topThreeTerms + quadratic term
-        v2 = topThreeTerms + (coeffArray[xAbs] * ((x < 0) ? -1.0f : 1.0f) * theConst2f);
+        v2 = topThreeTerms + (__ldg(&coeffArray[xAbs]) * xSignF * theConst2f);
         
         // Check v2 breakout
         if (v2 < v2BreakoutLow || v2 > v2BreakoutHigh) {
@@ -110,8 +141,10 @@ __global__ static void compareToZeta5loopPositiveOnly(int *out, const double the
 
         for (int y = yStart; y <= yEnd; y++) {
             const int yAbs = (y < 0) ? -y : y;
+            const float ySignF = (y < 0) ? -1.0f : 1.0f;
+            const double ySignD = (y < 0) ? -1.0 : 1.0;
             // Calculate v1 = v2 + linear term
-            v1 = v2 + (coeffArray[yAbs] * ((y < 0) ? -1.0f : 1.0f) * theConstf);
+            v1 = v2 + (__ldg(&coeffArray[yAbs]) * ySignF * theConstf);
             
             // Check v1 breakout
             if (v1 < v1BreakoutLow || v1 > v1BreakoutHigh) {
@@ -120,8 +153,10 @@ __global__ static void compareToZeta5loopPositiveOnly(int *out, const double the
 
             for (int z = zStart; z <= zEnd; z++) {
                 const int zAbs = (z < 0) ? -z : z;
+                const float zSignF = (z < 0) ? -1.0f : 1.0f;
+                const double zSignD = (z < 0) ? -1.0 : 1.0;
                 // Calculate v0 = v1 + constant term (final sum)
-                v0 = v1 + (coeffArray[zAbs] * ((z < 0) ? -1.0f : 1.0f));
+                v0 = v1 + (__ldg(&coeffArray[zAbs]) * zSignF);
 
                 // Compare against both needle and -needle
                 const bool matchesNeedle = FLOAT_BASICALLY_EQUAL(v0, needlef, floatTol);
@@ -130,12 +165,12 @@ __global__ static void compareToZeta5loopPositiveOnly(int *out, const double the
 
                 // Calculate double precision value for verification (using precomputed powers)
                 const double doubleValue =
-                    (doubleCoeffArray[quintAbs] * ((quintInd < 0) ? -1.0 : 1.0) * theConst5)
-                    + (doubleCoeffArray[quartAbs] * ((quartInd < 0) ? -1.0 : 1.0) * theConst4)
-                    + (doubleCoeffArray[cubicAbs] * ((cubicInd < 0) ? -1.0 : 1.0) * theConst3)
-                    + (doubleCoeffArray[xAbs] * ((x < 0) ? -1.0 : 1.0) * theConst2)
-                    + (doubleCoeffArray[yAbs] * ((y < 0) ? -1.0 : 1.0) * theConst)
-                    + (doubleCoeffArray[zAbs] * ((z < 0) ? -1.0 : 1.0));
+                    (__ldg(&doubleCoeffArray[quintAbs]) * theConst5)
+                    + (__ldg(&doubleCoeffArray[quartAbs]) * quartSignD * theConst4)
+                    + (__ldg(&doubleCoeffArray[cubicAbs]) * cubicSignD * theConst3)
+                    + (__ldg(&doubleCoeffArray[xAbs]) * xSignD * theConst2)
+                    + (__ldg(&doubleCoeffArray[yAbs]) * ySignD * theConst)
+                    + (__ldg(&doubleCoeffArray[zAbs]) * zSignD);
 
                 const double targetNeedle = matchesNeedle ? needle : negNeedle;
                 if (!DOUBLE_BASICALLY_EQUAL(doubleValue, targetNeedle, doubleTol)) continue;
@@ -472,10 +507,8 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         return results;
     }
 
-    // Optimized block size: (8, 8, 16) = 1024 threads
-    // This reduces register pressure compared to (16, 8, 8) while maintaining same thread count
-    // Smaller x dimension can help with memory coalescing patterns
-    dim3 blocksizes(8, 8, 16);
+    // Smaller block (8,8,8)=512 to avoid "too many resources for launch" with block hit buffer + __ldg
+    dim3 blocksizes(8, 8, 8);
     dim3 gridsizes(
         (quintRange + blocksizes.x - 1) / blocksizes.x,
         (quartRange + blocksizes.y - 1) / blocksizes.y,
