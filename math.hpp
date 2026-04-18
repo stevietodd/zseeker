@@ -22,6 +22,17 @@
 
 #define USE_DEFAULT 1'000'000 // this is kind of a hack. Only works because the number of total coeffs currently is 608,384
 
+// Inclusive bounds matching GpuQuinticFirstChecker / CpuQuinticFirstChecker loopStartEnds[0..3]
+// (indices 0-1 = quintic LUT index range, 2-3 = quartic; see GpuQuinticFirstChecker.cu).
+#define QUINTIC_FIRST_QUINT_LO (-608383)
+#define QUINTIC_FIRST_QUINT_HI (608383)
+#define QUINTIC_FIRST_QUART_LO (-152231)
+#define QUINTIC_FIRST_QUART_HI (152231)
+
+// Tile size for roots_checked_slice auto-population (GpuQuinticFirst quint x quart index rectangle).
+#define DEFAULT_SLICE_QUINT_CHUNK 1
+#define DEFAULT_SLICE_QUART_CHUNK 30
+
 // logic taken from https://blog.demofox.org/2017/11/21/floating-point-precision/
 static inline double getDoublePrecisionBasedOnMaxValue(const double maxValue) {
     // note we subtract 51 instead of 52 because I am reducing the precision allowed "to be safe"

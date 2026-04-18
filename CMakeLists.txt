@@ -78,6 +78,7 @@ add_executable(
 add_executable(
   zseeker2
   main.cpp
+  hitRefinement.cpp
   PolynomialCheckerInterface.hpp
   CpuPolynomialChecker.hpp
   CpuQuinticLastChecker.cpp
@@ -126,6 +127,7 @@ else()
   add_executable(
     zseeker2
     main.cpp
+    hitRefinement.cpp
     PolynomialCheckerInterface.hpp
     CpuPolynomialChecker.hpp
     CpuQuinticLastChecker.cpp
@@ -135,6 +137,11 @@ else()
     #GpuQuinticLastChecker.cu
     #GpuQuinticFirstChecker.cu
   )
+endif()
+
+if(TARGET zseeker2 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # libquadmath: __float128 in hitRefinement.cpp (optional ZSEEKER_REFINE_MODE=float128)
+  target_link_libraries(zseeker2 PRIVATE quadmath)
 endif()
 
 enable_testing()
