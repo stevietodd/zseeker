@@ -7,12 +7,7 @@
 #include <string>
 #include <strings.h>
 
-#if defined(__GNUC__) && defined(__SIZEOF_FLOAT128__) && __SIZEOF_FLOAT128__ == 16 && !defined(__clang__)
-#define ZSEEKER_INTERNAL_HAVE_FLOAT128 1
 #include <quadmath.h>
-#else
-#define ZSEEKER_INTERNAL_HAVE_FLOAT128 0
-#endif
 
 static bool envTruthy(const char* v) {
     if (!v || !*v) {
@@ -62,7 +57,6 @@ static long double evalQuinticHornerLongDouble(
     return (((((a5 * c + a4) * c + a3) * c + a2) * c + a1) * c + a0);
 }
 
-#if ZSEEKER_INTERNAL_HAVE_FLOAT128
 static __float128 lutCoeffFloat128(int idx, const double* lut) {
     if (idx < 0) {
         return -(__float128)lut[-idx];
@@ -80,7 +74,6 @@ static __float128 evalQuinticHornerFloat128(
     const __float128 a0 = lutCoeffFloat128(i0, lut);
     return (((((a5 * c + a4) * c + a3) * c + a2) * c + a1) * c + a0);
 }
-#endif
 
 std::size_t refineGpuHitsIfConfigured(
     std::vector<int*>* hits,
@@ -94,7 +87,6 @@ std::size_t refineGpuHitsIfConfigured(
     const char* mode = refineMode();
     const std::size_t before = hits->size();
 
-#if ZSEEKER_INTERNAL_HAVE_FLOAT128
     if (strcasecmp(mode, "float128") == 0) {
         const __float128 tol = parseLongDoubleOr("ZSEEKER_REFINE_TOL", 1e-24L);
         const __float128 c = theConst;
@@ -115,11 +107,6 @@ std::size_t refineGpuHitsIfConfigured(
                   << std::endl;
         return hits->size();
     }
-#else
-    if (strcasecmp(mode, "float128") == 0) {
-        std::cerr << "ZSEEKER_REFINE_MODE=float128 not available on this toolchain; falling back to ld." << std::endl;
-    }
-#endif
 
     // long double (default)
     const long double tol = parseLongDoubleOr("ZSEEKER_REFINE_TOL", 1e-14L);
