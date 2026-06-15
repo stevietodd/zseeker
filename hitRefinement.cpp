@@ -1,24 +1,19 @@
 #include "hitRefinement.hpp"
 
-#include <cmath>
+#include "lookupTableAccessor.hpp"
+
 #include <cstdlib>
-#include <cstring>
 #include <iostream>
-#include <string>
 #include <strings.h>
 
 #include <quadmath.h>
 
-static bool envTruthy(const char* v) {
-    if (!v || !*v) {
-        return false;
-    }
-    return (std::strcmp(v, "1") == 0) || (strcasecmp(v, "true") == 0) || (strcasecmp(v, "yes") == 0);
-}
+namespace {
 
-bool gpuHitRefinementEnabled() {
-    return envTruthy(std::getenv("ZSEEKER_REFINE_HITS"));
-}
+constexpr int kMaxDen = 1000;
+
+static __float128 invDenF128[kMaxDen + 1];
+static bool invDenReady = false;
 
 static long double parseLongDoubleOr(const char* name, long double defVal) {
     const char* v = std::getenv(name);
@@ -34,89 +29,68 @@ static long double parseLongDoubleOr(const char* name, long double defVal) {
     return x;
 }
 
-static const char* refineMode() {
-    const char* m = std::getenv("ZSEEKER_REFINE_MODE");
-    return (m && *m) ? m : "ld";
-}
-
-static long double lutCoeffLongDouble(int idx, const double* lut) {
-    if (idx < 0) {
-        return -static_cast<long double>(lut[-idx]);
+static void ensureInvDenFloat128() {
+    if (invDenReady) {
+        return;
     }
-    return static_cast<long double>(lut[idx]);
-}
-
-static long double evalQuinticHornerLongDouble(
-    int i5, int i4, int i3, int i2, int i1, int i0, long double c, const double* lut) {
-    const long double a5 = lutCoeffLongDouble(i5, lut);
-    const long double a4 = lutCoeffLongDouble(i4, lut);
-    const long double a3 = lutCoeffLongDouble(i3, lut);
-    const long double a2 = lutCoeffLongDouble(i2, lut);
-    const long double a1 = lutCoeffLongDouble(i1, lut);
-    const long double a0 = lutCoeffLongDouble(i0, lut);
-    return (((((a5 * c + a4) * c + a3) * c + a2) * c + a1) * c + a0);
-}
-
-static __float128 lutCoeffFloat128(int idx, const double* lut) {
-    if (idx < 0) {
-        return -(__float128)lut[-idx];
+    invDenF128[0] = 0.0Q;
+    for (int d = 1; d <= kMaxDen; d++) {
+        invDenF128[d] = 1.0Q / static_cast<__float128>(d);
     }
-    return (__float128)lut[idx];
+    invDenReady = true;
 }
 
-static __float128 evalQuinticHornerFloat128(
-    int i5, int i4, int i3, int i2, int i1, int i0, __float128 c, const double* lut) {
-    const __float128 a5 = lutCoeffFloat128(i5, lut);
-    const __float128 a4 = lutCoeffFloat128(i4, lut);
-    const __float128 a3 = lutCoeffFloat128(i3, lut);
-    const __float128 a2 = lutCoeffFloat128(i2, lut);
-    const __float128 a1 = lutCoeffFloat128(i1, lut);
-    const __float128 a0 = lutCoeffFloat128(i0, lut);
-    return (((((a5 * c + a4) * c + a3) * c + a2) * c + a1) * c + a0);
+static __float128 lutCoeffFloat128(int idx, const LutRational* rat) {
+    ensureInvDenFloat128();
+    const int absIdx = idx < 0 ? -idx : idx;
+    const LutRational r = rat[absIdx];
+    const __float128 v = static_cast<__float128>(r.num) * invDenF128[r.den];
+    return idx < 0 ? -v : v;
 }
 
-std::size_t refineGpuHitsIfConfigured(
+static __float128 evalQuinticDirectFloat128(
+    int i5,
+    int i4,
+    int i3,
+    int i2,
+    int i1,
+    int i0,
+    __float128 c1,
+    __float128 c2,
+    __float128 c3,
+    __float128 c4,
+    __float128 c5,
+    const LutRational* rat) {
+    return lutCoeffFloat128(i0, rat) + lutCoeffFloat128(i1, rat) * c1 + lutCoeffFloat128(i2, rat) * c2
+         + lutCoeffFloat128(i3, rat) * c3 + lutCoeffFloat128(i4, rat) * c4 + lutCoeffFloat128(i5, rat) * c5;
+}
+
+} // namespace
+
+std::size_t refineHitsWithFloat128Precision(
     std::vector<int*>* hits,
     double needle,
-    double theConst,
-    const double* lutDouble) {
-    if (!gpuHitRefinementEnabled() || !hits || hits->empty()) {
+    double theConst) {
+    if (!hits || hits->empty()) {
         return hits ? hits->size() : 0;
     }
 
-    const char* mode = refineMode();
+    const LutRational* rat = getLookupTableRational();
     const std::size_t before = hits->size();
 
-    if (strcasecmp(mode, "float128") == 0) {
-        const __float128 tol = parseLongDoubleOr("ZSEEKER_REFINE_TOL", 1e-24L);
-        const __float128 c = theConst;
-        const __float128 ndl = needle;
-        std::vector<int*> kept;
-        kept.reserve(hits->size());
-        for (int* h : *hits) {
-            const __float128 v = evalQuinticHornerFloat128(h[0], h[1], h[2], h[3], h[4], h[5], c, lutDouble);
-            const __float128 d = v > ndl ? v - ndl : ndl - v;
-            if (d < tol) {
-                kept.push_back(h);
-            } else {
-                delete[] h;
-            }
-        }
-        hits->swap(kept);
-        std::cout << "Hit refinement (float128): " << before << " -> " << hits->size() << " (tol=" << (double)tol << ")"
-                  << std::endl;
-        return hits->size();
-    }
-
-    // long double (default)
-    const long double tol = parseLongDoubleOr("ZSEEKER_REFINE_TOL", 1e-14L);
-    const long double c = static_cast<long double>(theConst);
-    const long double ndl = static_cast<long double>(needle);
+    const __float128 tol = parseLongDoubleOr("ZSEEKER_REFINE_TOL", 1e-24L);
+    const __float128 c1 = static_cast<__float128>(theConst);
+    const __float128 c2 = c1 * c1;
+    const __float128 c3 = c2 * c1;
+    const __float128 c4 = c2 * c2;
+    const __float128 c5 = c4 * c1;
+    const __float128 ndl = static_cast<__float128>(needle);
     std::vector<int*> kept;
     kept.reserve(hits->size());
     for (int* h : *hits) {
-        const long double v = evalQuinticHornerLongDouble(h[0], h[1], h[2], h[3], h[4], h[5], c, lutDouble);
-        const long double d = v > ndl ? v - ndl : ndl - v;
+        const __float128 v =
+            evalQuinticDirectFloat128(h[0], h[1], h[2], h[3], h[4], h[5], c1, c2, c3, c4, c5, rat);
+        const __float128 d = v > ndl ? v - ndl : ndl - v;
         if (d < tol) {
             kept.push_back(h);
         } else {
@@ -124,7 +98,7 @@ std::size_t refineGpuHitsIfConfigured(
         }
     }
     hits->swap(kept);
-    std::cout << "Hit refinement (long double): " << before << " -> " << hits->size() << " (tol=" << (double)tol << ")"
-              << std::endl;
+    std::cout << "Hit refinement (float128 rational): " << before << " -> " << hits->size()
+              << " (tol=" << (double)tol << ")" << std::endl;
     return hits->size();
 }

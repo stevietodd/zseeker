@@ -1,4 +1,5 @@
 #include "GpuPolynomialChecker.hpp"
+#include "hitRefinement.hpp"
 #include "math.hpp"
 #include "lookupTableAccessor.hpp"
 
@@ -447,5 +448,6 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFive::findHits(
     delete[] out;
 
     floatHitCount = h_hitCount;
+    refineHitsWithFloat128Precision(results, needle, theConst);
     return results;
 }

@@ -94,6 +94,7 @@ add_executable(
 add_executable(
   GpuPolynomialCheckerTestSuite
   test/GpuPolynomialCheckerTestSuite.cpp
+  hitRefinement.cpp
   GpuQuinticLastChecker.cu
   GpuQuinticFirstChecker.cu
   GpuQuinticFirstCheckerPositiveOnly.cu
@@ -106,6 +107,7 @@ add_executable(
 target_link_libraries(
   GpuPolynomialCheckerTestSuite
   GTest::gtest_main
+  quadmath
 )
 
 # Uncomment the below out to see detailed register and memory information for CUDA compilation
@@ -115,7 +117,7 @@ gtest_discover_tests(GpuPolynomialCheckerTestSuite)
 
 
 if(TARGET zseeker2)
-  # libquadmath: __float128 in hitRefinement.cpp (optional ZSEEKER_REFINE_MODE=float128)
+  # libquadmath: __float128 in hitRefinement.cpp
   target_link_libraries(zseeker2 PRIVATE quadmath)
 endif()
 

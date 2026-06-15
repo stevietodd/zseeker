@@ -12,7 +12,6 @@
 #include "GpuPolynomialChecker.hpp"
 #include "math.hpp"
 #include "lookupTableAccessor.hpp"
-#include "hitRefinement.hpp"
 
 #define WORK_ITEMS_PER_QUERY 1
 
@@ -744,7 +743,6 @@ int main(int argc, char *argv[])
                 std::vector<int> loopRanges = makeQuinticFirstSliceLoopRanges(s.quintLo, s.quintHi, s.quartLo, s.quartHi);
                 floatHitCount = 0;
                 hits = checker->findHits(ZETA5, theConst, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
-                refineGpuHitsIfConfigured(hits, ZETA5, theConst, getLookupTableDouble());
                 sliceFloat = floatHitCount;
                 sliceDouble = static_cast<long>(hits->size());
 
@@ -792,7 +790,6 @@ int main(int argc, char *argv[])
 
                     floatHitCount = 0;
                     hits = checker->findHits(ZETA5, theConst, 5, getLookupTableFloat(), NULL, floatHitCount);
-                    refineGpuHitsIfConfigured(hits, ZETA5, theConst, getLookupTableDouble());
 
                     floatHitCounts[zrootIdx] = floatHitCount;
                     doubleHitCounts[zrootIdx] = static_cast<long>(hits->size());
