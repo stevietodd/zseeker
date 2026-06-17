@@ -14,20 +14,11 @@
 #define FLOAT_BASICALLY_EQUAL_DEFAULT(f1,f2) ((f1 - f2) >= FLOAT_NEG_ERROR_DEFAULT && (f1 - f2) <= FLOAT_POS_ERROR_DEFAULT)
 #define FLOAT_BASICALLY_EQUAL(f1,f2,tolerance) ((f1 - f2) >= -tolerance && (f1 - f2) <= tolerance)
 
-#define MAX3(a, b, c) ((a) > (b) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
-
 #define ZETA2 1.64493406684822643647
 #define ZETA4 1.08232323371113819152
 #define ZETA5 1.03692775514336992633 // 1.036927755143369926331365486457034168L
 
 #define USE_DEFAULT 1'000'000 // this is kind of a hack. Only works because the number of total coeffs currently is 608,384
-
-// Inclusive bounds matching GpuQuinticFirstChecker / CpuQuinticFirstChecker loopStartEnds[0..3]
-// (indices 0-1 = quintic LUT index range, 2-3 = quartic; see GpuQuinticFirstChecker.cu).
-#define QUINTIC_FIRST_QUINT_LO (-608383)
-#define QUINTIC_FIRST_QUINT_HI (608383)
-#define QUINTIC_FIRST_QUART_LO (-152231)
-#define QUINTIC_FIRST_QUART_HI (152231)
 
 // Tile size for roots_checked_slice auto-population (GpuQuinticFirst quint x quart index rectangle).
 #define DEFAULT_SLICE_QUINT_CHUNK 1
