@@ -4,6 +4,8 @@
 #include <array>
 #include <numeric>
 #include <vector>
+
+#include "lookupTableAccessor.hpp"
 //using ResultT = float;
 constexpr float f(int i, int j)
 {
@@ -137,6 +139,30 @@ inline constexpr auto doubleLUT = []
 		// 	arr[5] = pos - 1; // cutoff1000
 		// }
 			
+    }
+
+    return arr;
+}();
+
+inline constexpr auto rationalLUT = []
+{
+    constexpr auto LUT_LoopSize = 1000;
+    std::array<LutRational, (608'384)> arr = {};
+
+    int pos = 0;
+
+    arr[pos++] = LutRational{0, 1};
+    arr[pos++] = LutRational{1, 1};
+
+    for (int i = 2; i <= LUT_LoopSize; i++) {
+        for (int j = 1; j < i; j++) {
+            if (std::gcd(i, j) > 1) {
+                continue;
+            }
+
+            arr[pos++] = LutRational{static_cast<int16_t>(j), static_cast<int16_t>(i)};
+            arr[pos++] = LutRational{static_cast<int16_t>(i), static_cast<int16_t>(j)};
+        }
     }
 
     return arr;

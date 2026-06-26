@@ -87,7 +87,7 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
         v4max,v3max,v2max,v1max,v0max);
 
     // finally, these values represent how far away (+/-) we can be in a loop before it is deemed unnecessary to complete lower loops
-    const float tolerance = needlef; // NOTE that this is currently set to the needle
+    const float tolerance = std::abs(needlef); // NOTE that this is currently set to the needle
 	const float v1BreakoutHigh = needlef + v0max  + tolerance;
 	const float v1BreakoutLow = needlef - v0max - tolerance;
 	const float v2BreakoutHigh = needlef + v1max + tolerance;

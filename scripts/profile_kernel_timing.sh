@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Kernel Timing Profiling Script
+# Kernel Timing Profiling Script using nsys
 # This focuses specifically on kernel execution times
 # Usage: ./profile_kernel_timing.sh <your_program> [args...]
 
@@ -19,19 +19,33 @@ echo "Program: $PROGRAM"
 echo "Args: $ARGS"
 echo ""
 
-# Run with nvprof focusing on kernel execution
-# --print-gpu-summary: Shows all kernels with their execution times
-# --normalized-time-unit ms: Show times in milliseconds
-nvprof --device-buffer-size 512MB \
-       --print-gpu-summary \
-       --normalized-time-unit ms \
-       --log-file nvprof_kernel_timing.txt \
-       "$PROGRAM" $ARGS
+# Check if nsys is available
+if ! command -v nsys &> /dev/null; then
+    echo "Error: nsys (NVIDIA Nsight Systems) not found!"
+    echo "It should be included with your CUDA toolkit."
+    exit 1
+fi
+
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+OUTPUT_FILE="kernel_timing_${TIMESTAMP}.txt"
+
+# Run with nsys focusing on GPU trace (kernel execution times)
+nsys profile \
+    --output=nsys_timing_${TIMESTAMP} \
+    --trace=cuda \
+    --stats=true \
+    --force-overwrite=true \
+    "$PROGRAM" $ARGS > "$OUTPUT_FILE" 2>&1
 
 echo ""
 echo "Kernel timing profile complete!"
-echo "Results saved to: nvprof_kernel_timing.txt"
+echo "Results saved to: $OUTPUT_FILE"
 echo ""
 echo "Looking for kernel execution times..."
-grep -i "kernel\|compareToZeta" nvprof_kernel_timing.txt || echo "No kernel execution found in trace (kernel may not be completing)"
+grep -i "compareToZeta5loop\|Duration\|Total\|Time(\%)" "$OUTPUT_FILE" | head -30 || echo "No kernel execution found in trace (kernel may not be completing)"
 
+# Also try to get stats
+if nsys stats --report gputrace nsys_timing_${TIMESTAMP}.nsys-rep 2>/dev/null | tee -a "$OUTPUT_FILE"; then
+    echo ""
+    echo "Detailed stats appended to: $OUTPUT_FILE"
+fi

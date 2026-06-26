@@ -16,6 +16,7 @@
 *.cbp
 *.log
 *.sql
+!schema/*.sql
 *.sqlite
  .DS_Store
 .DS_Store?

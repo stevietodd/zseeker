@@ -14,13 +14,15 @@
 #define FLOAT_BASICALLY_EQUAL_DEFAULT(f1,f2) ((f1 - f2) >= FLOAT_NEG_ERROR_DEFAULT && (f1 - f2) <= FLOAT_POS_ERROR_DEFAULT)
 #define FLOAT_BASICALLY_EQUAL(f1,f2,tolerance) ((f1 - f2) >= -tolerance && (f1 - f2) <= tolerance)
 
-#define MAX3(a, b, c) ((a) > (b) ? ((a) > (c) ? (a) : (c)) : ((b) > (c) ? (b) : (c)))
-
 #define ZETA2 1.64493406684822643647
 #define ZETA4 1.08232323371113819152
 #define ZETA5 1.03692775514336992633 // 1.036927755143369926331365486457034168L
 
 #define USE_DEFAULT 1'000'000 // this is kind of a hack. Only works because the number of total coeffs currently is 608,384
+
+// Tile size for roots_checked_slice auto-population (GpuQuinticFirst quint x quart index rectangle).
+#define DEFAULT_SLICE_QUINT_CHUNK 1
+#define DEFAULT_SLICE_QUART_CHUNK 30
 
 // logic taken from https://blog.demofox.org/2017/11/21/floating-point-precision/
 static inline double getDoublePrecisionBasedOnMaxValue(const double maxValue) {
@@ -34,7 +36,7 @@ static inline float getFloatPrecisionBasedOnMaxValue(const float maxValue) {
     // note we subtract 22 instead of 23 because I am reducing the precision allowed "to be safe"
     // also note that for maxValue == 0 we use the precision for 1 to avoid returning 0 ourselves
     return pow(2, (floor(log2(abs(maxValue ?: 1))) - 22));
-	//return pow(2, (floor(log2(abs(maxValue ?: 1))) - 23));  TODO: MegaMan explore speedup with this!
+	//return pow(2, (floor(log2(abs(maxValue ?: 1))) - 23));  //TODO: MegaMan explore speedup with this!
 }
 
 #endif // MATH_HPP
