@@ -78,7 +78,8 @@ std::size_t refineHitsWithFloat128Precision(
     const LutRational* rat = getLookupTableRational();
     const std::size_t before = hits->size();
 
-    const __float128 tol = parseLongDoubleOr("ZSEEKER_REFINE_TOL", 1e-24L);
+	// default tol used to be 1e-24, but I increased it to 1e-12 to be more lenient
+    const __float128 tol = parseLongDoubleOr("ZSEEKER_REFINE_TOL", 1e-12L);
     const __float128 c1 = static_cast<__float128>(theConst);
     const __float128 c2 = c1 * c1;
     const __float128 c3 = c2 * c1;

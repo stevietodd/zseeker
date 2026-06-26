@@ -7,7 +7,7 @@
 // Second-stage filter after GPU "double" hits: re-evaluate the quintic at theConst using LUT
 // coefficient rationals (num/den) in __float128 (libquadmath on GCC/x86_64).
 //
-// ZSEEKER_REFINE_TOL defaults to 1e-24.
+// ZSEEKER_REFINE_TOL defaults to 1e-12. Used to be 1e-24 from Cursor but I increased it to 1e-12 to be more lenient
 //
 // Coefficients are computed as sign * num * (1/den) from the compile-time rational LUT, not
 // from precomputed double approximations.
