@@ -174,7 +174,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFour::findHits(
     const int degree,
     const float *coeffArray,
     const std::vector<int> *loopRanges,
-    long& floatHitCount
+    long& doubleHitCount
 ) {
     int loopStartEnds[12] = {0, 608'383, -152'231, 152'231, -6'087, 6'087, -2'203, 2'203, -555, 555, -143, 143};
     int coeffArraySize = 608'384;
@@ -234,7 +234,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFour::findHits(
     if (err != cudaSuccess) {
         cerr << "CUDA device initialization error: " << cudaGetErrorString(err) << endl;
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -243,7 +243,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFour::findHits(
     if (err != cudaSuccess) {
         cerr << "CUDA get device properties error: " << cudaGetErrorString(err) << endl;
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -308,17 +308,17 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFour::findHits(
     int *d_doubleHitCount = nullptr;
 
     err = cudaMalloc((void**)&d_hitCount, sizeof(int));
-    if (err != cudaSuccess) { delete[] out; floatHitCount = 0; return results; }
+    if (err != cudaSuccess) { delete[] out; doubleHitCount = 0; return results; }
     err = cudaMalloc((void**)&d_doubleHitCount, sizeof(int));
-    if (err != cudaSuccess) { cudaFree(d_hitCount); delete[] out; floatHitCount = 0; return results; }
+    if (err != cudaSuccess) { cudaFree(d_hitCount); delete[] out; doubleHitCount = 0; return results; }
     err = cudaMalloc((void**)&d_coeffArray, sizeof(float) * coeffArraySize);
-    if (err != cudaSuccess) { cudaFree(d_doubleHitCount); cudaFree(d_hitCount); delete[] out; floatHitCount = 0; return results; }
+    if (err != cudaSuccess) { cudaFree(d_doubleHitCount); cudaFree(d_hitCount); delete[] out; doubleHitCount = 0; return results; }
     err = cudaMalloc((void**)&d_doubleCoeffArray, sizeof(double) * coeffArraySize);
-    if (err != cudaSuccess) { cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount); delete[] out; floatHitCount = 0; return results; }
+    if (err != cudaSuccess) { cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount); delete[] out; doubleHitCount = 0; return results; }
     err = cudaMalloc((void**)&d_out, sizeof(int) * coeffArraySize * 6);
-    if (err != cudaSuccess) { cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount); delete[] out; floatHitCount = 0; return results; }
+    if (err != cudaSuccess) { cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount); delete[] out; doubleHitCount = 0; return results; }
     err = cudaMalloc((void**)&d_loopStartEnds, sizeof(int) * 12);
-    if (err != cudaSuccess) { cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount); delete[] out; floatHitCount = 0; return results; }
+    if (err != cudaSuccess) { cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount); delete[] out; doubleHitCount = 0; return results; }
 
     // Initialize output array on host (matching original behavior)
     for (int o = 0; o < coeffArraySize * 6; o++) out[o] = 0;
@@ -326,32 +326,32 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFour::findHits(
     err = cudaMemcpy(d_hitCount, &h_hitCount, sizeof(int), cudaMemcpyHostToDevice);
     if (err != cudaSuccess) {
         cudaFree(d_loopStartEnds); cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount);
-        delete[] out; floatHitCount = 0; return results;
+        delete[] out; doubleHitCount = 0; return results;
     }
 
     err = cudaMemcpy(d_doubleHitCount, &h_doubleHitCount, sizeof(int), cudaMemcpyHostToDevice);
     if (err != cudaSuccess) {
         cudaFree(d_loopStartEnds); cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount);
-        delete[] out; floatHitCount = 0; return results;
+        delete[] out; doubleHitCount = 0; return results;
     }
 
     err = cudaMemcpy(d_coeffArray, coeffArray, sizeof(float) * coeffArraySize, cudaMemcpyHostToDevice);
     if (err != cudaSuccess) {
         cudaFree(d_loopStartEnds); cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount);
-        delete[] out; floatHitCount = 0; return results;
+        delete[] out; doubleHitCount = 0; return results;
     }
 
     const double* doubleCoeffArray = getLookupTableDouble();
     err = cudaMemcpy(d_doubleCoeffArray, doubleCoeffArray, sizeof(double) * coeffArraySize, cudaMemcpyHostToDevice);
     if (err != cudaSuccess) {
         cudaFree(d_loopStartEnds); cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount);
-        delete[] out; floatHitCount = 0; return results;
+        delete[] out; doubleHitCount = 0; return results;
     }
 
     err = cudaMemcpy(d_loopStartEnds, loopStartEnds, sizeof(int) * 12, cudaMemcpyHostToDevice);
     if (err != cudaSuccess) {
         cudaFree(d_loopStartEnds); cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount);
-        delete[] out; floatHitCount = 0; return results;
+        delete[] out; doubleHitCount = 0; return results;
     }
 
     dim3 blocksizes(8, 8, 8); // 512 threads
@@ -392,7 +392,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFour::findHits(
         cerr << "CUDA kernel launch error: " << cudaGetErrorString(err) << endl;
         cudaEventDestroy(kernelStart); cudaEventDestroy(kernelStop);
         cudaFree(d_loopStartEnds); cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount);
-        delete[] out; floatHitCount = 0; return results;
+        delete[] out; doubleHitCount = 0; return results;
     }
 
     err = cudaDeviceSynchronize();
@@ -400,7 +400,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFour::findHits(
         cerr << "CUDA kernel execution error: " << cudaGetErrorString(err) << endl;
         cudaEventDestroy(kernelStart); cudaEventDestroy(kernelStop);
         cudaFree(d_loopStartEnds); cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount);
-        delete[] out; floatHitCount = 0; return results;
+        delete[] out; doubleHitCount = 0; return results;
     }
 
     float kernelTimeMs = 0.0f;
@@ -412,19 +412,19 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFour::findHits(
     err = cudaMemcpy(&h_hitCount, d_hitCount, sizeof(int), cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
         cudaFree(d_loopStartEnds); cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount);
-        delete[] out; floatHitCount = 0; return results;
+        delete[] out; doubleHitCount = 0; return results;
     }
 
     err = cudaMemcpy(&h_doubleHitCount, d_doubleHitCount, sizeof(int), cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
         cudaFree(d_loopStartEnds); cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount);
-        delete[] out; floatHitCount = 0; return results;
+        delete[] out; doubleHitCount = 0; return results;
     }
 
     err = cudaMemcpy(out, d_out, sizeof(int) * coeffArraySize * 6, cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
         cudaFree(d_loopStartEnds); cudaFree(d_out); cudaFree(d_doubleCoeffArray); cudaFree(d_coeffArray); cudaFree(d_doubleHitCount); cudaFree(d_hitCount);
-        delete[] out; floatHitCount = 0; return results;
+        delete[] out; doubleHitCount = 0; return results;
     }
 
     for (int j = 0; j < h_doubleHitCount; j++) {
@@ -439,8 +439,8 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFour::findHits(
     cudaFree(d_hitCount);
     delete[] out;
 
-    floatHitCount = h_hitCount;
     refineHitsWithFloat128Precision(results, needle, theConst);
+    doubleHitCount = static_cast<long>(results->size());
     return results;
 }  
 

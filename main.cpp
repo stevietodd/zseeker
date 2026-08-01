@@ -555,7 +555,7 @@ int main(int argc, char *argv[])
 {
     PolynomialCheckerInterface *checker;
     std::vector<int*> *hits;
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     double theConst;
 
     typedef std::numeric_limits< float > ldbl;
@@ -596,7 +596,7 @@ int main(int argc, char *argv[])
                     USE_DEFAULT, USE_DEFAULT,  // quartStart, quartEnd
                     USE_DEFAULT, USE_DEFAULT   // quintStart, quintEnd
                 };
-                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
+                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);
                 int *result;
                 for (int i = 0; i < hits->size(); i++) {
                     result = hits->at(i);
@@ -619,7 +619,7 @@ int main(int argc, char *argv[])
                     USE_DEFAULT, USE_DEFAULT,  // quartStart, quartEnd
                     USE_DEFAULT, USE_DEFAULT   // quintStart, quintEnd
                 };
-                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
+                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);
                 int *result;
                 for (int i = 0; i < hits->size(); i++) {
                     result = hits->at(i);
@@ -642,7 +642,7 @@ int main(int argc, char *argv[])
                     USE_DEFAULT, USE_DEFAULT,  // quartStart, quartEnd
                     USE_DEFAULT, USE_DEFAULT   // quintStart, quintEnd
                 };
-                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
+                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);
                 int *result;
                 for (int i = 0; i < hits->size(); i++) {
                     result = hits->at(i);
@@ -663,7 +663,7 @@ int main(int argc, char *argv[])
                     USE_DEFAULT, USE_DEFAULT,
                     USE_DEFAULT, USE_DEFAULT
                 };
-                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
+                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);
                 int *result;
                 for (int i = 0; i < hits->size(); i++) {
                     result = hits->at(i);
@@ -682,7 +682,7 @@ int main(int argc, char *argv[])
                     USE_DEFAULT, USE_DEFAULT,
                     USE_DEFAULT, USE_DEFAULT
                 };
-                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
+                hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);
                 int *result;
                 for (int i = 0; i < hits->size(); i++) {
                     result = hits->at(i);
@@ -741,10 +741,9 @@ int main(int argc, char *argv[])
                 theConst = s.zrootVal.value();
                 std::cout << "theConst = " << theConst << std::endl;
                 std::vector<int> loopRanges = makeQuinticFirstSliceLoopRanges(s.quintLo, s.quintHi, s.quartLo, s.quartHi);
-                floatHitCount = 0;
-                hits = checker->findHits(ZETA5, theConst, 5, getLookupTableFloat(), &loopRanges, floatHitCount);
-                sliceFloat = floatHitCount;
-                sliceDouble = static_cast<long>(hits->size());
+                doubleHitCount = 0;
+                hits = checker->findHits(ZETA5, theConst, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);
+                sliceDouble = doubleHitCount;
 
                 int* result = nullptr;
                 for (size_t i = 0; i < hits->size(); i++) {
@@ -779,7 +778,6 @@ int main(int argc, char *argv[])
             const WorkItem& item = workItems[itemIdx];
             std::cout << "\n=== Processing work item " << itemIdx + 1 << " (id: " << item.id << ") ===" << std::endl;
 
-            std::optional<long> floatHitCounts[3];
             std::optional<long> doubleHitCounts[3];
             std::optional<double> zroots[3] = {item.zroot1, item.zroot2, item.zroot3};
 
@@ -788,11 +786,10 @@ int main(int argc, char *argv[])
                     theConst = zroots[zrootIdx].value();
                     std::cout << "\nProcessing zroot" << zrootIdx + 1 << " = " << theConst << std::endl;
 
-                    floatHitCount = 0;
-                    hits = checker->findHits(ZETA5, theConst, 5, getLookupTableFloat(), NULL, floatHitCount);
+                    doubleHitCount = 0;
+                    hits = checker->findHits(ZETA5, theConst, 5, getLookupTableFloat(), NULL, doubleHitCount);
 
-                    floatHitCounts[zrootIdx] = floatHitCount;
-                    doubleHitCounts[zrootIdx] = static_cast<long>(hits->size());
+                    doubleHitCounts[zrootIdx] = doubleHitCount;
 
                     int* result = nullptr;
                     for (size_t i = 0; i < hits->size(); i++) {
@@ -810,15 +807,6 @@ int main(int argc, char *argv[])
             std::string updateQuery = "UPDATE roots_checked SET ";
             std::vector<std::string> updateFields;
 
-            if (floatHitCounts[0].has_value()) {
-                updateFields.push_back("float_hit_count1 = " + std::to_string(floatHitCounts[0].value()));
-            }
-            if (floatHitCounts[1].has_value()) {
-                updateFields.push_back("float_hit_count2 = " + std::to_string(floatHitCounts[1].value()));
-            }
-            if (floatHitCounts[2].has_value()) {
-                updateFields.push_back("float_hit_count3 = " + std::to_string(floatHitCounts[2].value()));
-            }
             if (doubleHitCounts[0].has_value()) {
                 updateFields.push_back("double_hit_count1 = " + std::to_string(doubleHitCounts[0].value()));
             }

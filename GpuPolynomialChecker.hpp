@@ -15,7 +15,7 @@ class GpuQuinticLastChecker : public PolynomialCheckerInterface
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         );
 };
 
@@ -31,7 +31,7 @@ class GpuQuinticFirstChecker : public PolynomialCheckerInterface
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         );
 };
 
@@ -47,7 +47,7 @@ class GpuQuinticFirstCheckerPositiveOnly : public PolynomialCheckerInterface
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         );
 };
 
@@ -63,7 +63,7 @@ class GpuQuinticFirstCheckerPositiveOnlyTopFour : public PolynomialCheckerInterf
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         );
 };
 
@@ -80,7 +80,7 @@ class GpuQuinticFirstCheckerPositiveOnlyTopFive : public PolynomialCheckerInterf
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         );
 };
 
@@ -97,7 +97,7 @@ class GpuQuinticFirstCheckerPositiveOnlyTopSix : public PolynomialCheckerInterfa
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         );
 };
 
@@ -113,7 +113,7 @@ class GpuNoLookupTableChecker : public PolynomialCheckerInterface
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         );
 };
 

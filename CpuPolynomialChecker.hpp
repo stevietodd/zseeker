@@ -15,7 +15,7 @@ class CpuQuinticLastChecker : public PolynomialCheckerInterface
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         );
 };
 
@@ -31,7 +31,7 @@ class CpuQuinticFirstChecker : public PolynomialCheckerInterface
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         );
 };
 
@@ -47,7 +47,7 @@ class CpuQuinticFirstWithBreakoutsChecker : public PolynomialCheckerInterface
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         );
 };
 

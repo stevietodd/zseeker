@@ -143,7 +143,7 @@ std::vector<int*>* GpuQuinticLastChecker::findHits(
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
 )
 {
     // Updated loop boundaries to go from negative to positive ranges instead of starting from 6
@@ -194,5 +194,6 @@ std::vector<int*>* GpuQuinticLastChecker::findHits(
         }
     }
 
+    doubleHitCount = static_cast<long>(hits->size());
     return hits;
 }

@@ -100,7 +100,7 @@ std::vector<int*>* GpuNoLookupTableChecker::findHits(
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
 )
 {
     // Updated loop boundaries to match checkz3constantswithz5usingLUTandCPU::main
@@ -190,7 +190,7 @@ std::cout << cudaPeekAtLastError() << std::endl;
 
 	delete out;
 
-	floatHitCount = results->size();
+	doubleHitCount = static_cast<long>(results->size());
 	return results;
 
 
