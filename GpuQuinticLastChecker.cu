@@ -194,6 +194,6 @@ std::vector<int*>* GpuQuinticLastChecker::findHits(
         }
     }
 
-    doubleHitCount = static_cast<long>(hits->size());
+    doubleHitCount = -1; //TODO: Returning this invalid value since this checker doesn't return double-verified hits
     return hits;
 }
