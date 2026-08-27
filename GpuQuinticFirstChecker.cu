@@ -1,4 +1,5 @@
 #include "GpuPolynomialChecker.hpp"
+#include "hitRefinement.hpp"
 #include "math.hpp"
 #include "lookupTableAccessor.hpp"
 
@@ -561,8 +562,8 @@ std::vector<int*>* GpuQuinticFirstChecker::findHits(
 
 	delete[] out;
 
-	// doubleHitCount is the number of double-verified hits in results
 	doubleHitCount = h_doubleHitCount;
+	refineHitsWithFloat128Precision(results, needle, theConst);
 	return results;
 
 

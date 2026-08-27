@@ -630,7 +630,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
 
     delete[] out;
 
+    doubleHitCount = h_doubleHitCount;
     refineHitsWithFloat128Precision(results, needle, theConst);
-    doubleHitCount = static_cast<long>(results->size());
     return results;
 }

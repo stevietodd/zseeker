@@ -274,10 +274,11 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsSameAsNonBreakoutsT
 	// confirm using breakouts produces the exact same number of double hits
 	ASSERT_EQ(doubleHitCount, breakoutDoubleHitCount);
 
-	// confirm using breakouts produces the exact same number of hits
+	// confirm using breakouts produces the exact same number of float128 hits
 	ASSERT_EQ(nonBreakoutHits->size(), withBreakoutHits->size());
-	ASSERT_EQ(doubleHitCount, static_cast<long>(nonBreakoutHits->size()));
+	ASSERT_LE(static_cast<long>(nonBreakoutHits->size()), doubleHitCount);
 
-	printf("Both CPU checkers had %ld double hits\n", doubleHitCount);
+	printf("Both CPU checkers had %ld double hits and %lu float128 hits\n",
+		doubleHitCount, nonBreakoutHits->size());
 
 }

@@ -168,6 +168,7 @@ endforeach()
 add_executable(
   CpuPolynomialCheckerTestSuite
   test/CpuPolynomialCheckerTestSuite.cpp
+  hitRefinement.cpp
   CpuQuinticLastChecker.cpp
   CpuQuinticFirstChecker.cpp
   CpuQuinticFirstWithBreakoutsChecker.cpp
@@ -176,6 +177,7 @@ add_executable(
 target_link_libraries(
   CpuPolynomialCheckerTestSuite
   GTest::gtest_main
+  quadmath
 )
 
 gtest_discover_tests(LookupTableTestSuite)

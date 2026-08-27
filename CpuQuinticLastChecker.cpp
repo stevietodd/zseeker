@@ -1,4 +1,5 @@
 #include "CpuPolynomialChecker.hpp"
+#include "hitRefinement.hpp"
 #include "lookupTableAccessor.hpp"
 #include "math.hpp"
 #include <ctime> // can remove if getCurrentTimeString is removed
@@ -130,5 +131,6 @@ std::vector<int*>* CpuQuinticLastChecker::findHits(
 	}
 
 	doubleHitCount = static_cast<long>(hits->size());
+	refineHitsWithFloat128Precision(hits, needle, theConst);
     return hits;
 }
