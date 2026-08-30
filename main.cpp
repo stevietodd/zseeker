@@ -403,9 +403,9 @@ std::vector<SliceWorkItem> getSliceWorkToBeDone(MYSQL* mysql) {
     return items;
 }
 
-static bool updateSliceFinished(MYSQL* mysql, long long sliceId, long floatHits, long doubleHits) {
-    std::string q = "UPDATE roots_checked_slice SET is_finished = 1, float_hit_count = " + std::to_string(floatHits)
-        + ", double_hit_count = " + std::to_string(doubleHits) + " WHERE id = " + std::to_string(sliceId);
+static bool updateSliceFinished(MYSQL* mysql, long long sliceId, long doubleHits, long float128Hits) {
+    std::string q = "UPDATE roots_checked_slice SET is_finished = 1, double_hit_count = " + std::to_string(doubleHits)
+        + ", float128_hit_count = " + std::to_string(float128Hits) + " WHERE id = " + std::to_string(sliceId);
     if (mysql_query(mysql, q.c_str())) {
         std::cerr << "Error: slice finish UPDATE failed: " << mysql_error(mysql) << std::endl;
         return false;
@@ -413,15 +413,15 @@ static bool updateSliceFinished(MYSQL* mysql, long long sliceId, long floatHits,
     return true;
 }
 
-static bool addSliceHitsToRootsChecked(MYSQL* mysql, int cubicRootId, int zrootSlot, long floatHits, long doubleHits) {
+static bool addSliceHitsToRootsChecked(MYSQL* mysql, int cubicRootId, int zrootSlot, long doubleHits, long float128Hits) {
     if (zrootSlot < 1 || zrootSlot > 3) {
         std::cerr << "Error: invalid zroot_slot " << zrootSlot << std::endl;
         return false;
     }
-    std::string fcol = "float_hit_count" + std::to_string(zrootSlot);
     std::string dcol = "double_hit_count" + std::to_string(zrootSlot);
-    std::string q = "UPDATE roots_checked SET " + fcol + " = COALESCE(" + fcol + ", 0) + " + std::to_string(floatHits)
-        + ", " + dcol + " = COALESCE(" + dcol + ", 0) + " + std::to_string(doubleHits) + " WHERE id = " + std::to_string(cubicRootId);
+    std::string fcol = "float128_hit_count" + std::to_string(zrootSlot);
+    std::string q = "UPDATE roots_checked SET " + dcol + " = COALESCE(" + dcol + ", 0) + " + std::to_string(doubleHits)
+        + ", " + fcol + " = COALESCE(" + fcol + ", 0) + " + std::to_string(float128Hits) + " WHERE id = " + std::to_string(cubicRootId);
     if (mysql_query(mysql, q.c_str())) {
         std::cerr << "Error: roots_checked incremental UPDATE failed: " << mysql_error(mysql) << std::endl;
         return false;
@@ -732,8 +732,8 @@ int main(int argc, char *argv[])
                       << " zroot_slot=" << s.zrootSlot << " quint=[" << s.quintLo << "," << s.quintHi << "] quart=["
                       << s.quartLo << "," << s.quartHi << "] ===" << std::endl;
 
-            long sliceFloat = 0;
             long sliceDouble = 0;
+            long sliceFloat128 = 0;
 
             if (!s.zrootVal.has_value()) {
                 std::cerr << "Warning: zroot is NULL for slice id " << s.sliceId << "; marking finished with 0 hits." << std::endl;
@@ -744,6 +744,7 @@ int main(int argc, char *argv[])
                 doubleHitCount = 0;
                 hits = checker->findHits(ZETA5, theConst, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);
                 sliceDouble = doubleHitCount;
+                sliceFloat128 = static_cast<long>(hits->size());
 
                 int* result = nullptr;
                 for (size_t i = 0; i < hits->size(); i++) {
@@ -755,10 +756,10 @@ int main(int argc, char *argv[])
                 hits = nullptr;
             }
 
-            if (!updateSliceFinished(mysql, s.sliceId, sliceFloat, sliceDouble)) {
+            if (!updateSliceFinished(mysql, s.sliceId, sliceDouble, sliceFloat128)) {
                 continue;
             }
-            if (!addSliceHitsToRootsChecked(mysql, s.cubicRootId, s.zrootSlot, sliceFloat, sliceDouble)) {
+            if (!addSliceHitsToRootsChecked(mysql, s.cubicRootId, s.zrootSlot, sliceDouble, sliceFloat128)) {
                 continue;
             }
             finalizeRootsCheckedIfAllSlicesDone(mysql, s.cubicRootId);
@@ -779,6 +780,7 @@ int main(int argc, char *argv[])
             std::cout << "\n=== Processing work item " << itemIdx + 1 << " (id: " << item.id << ") ===" << std::endl;
 
             std::optional<long> doubleHitCounts[3];
+            std::optional<long> float128HitCounts[3];
             std::optional<double> zroots[3] = {item.zroot1, item.zroot2, item.zroot3};
 
             for (int zrootIdx = 0; zrootIdx < 3; ++zrootIdx) {
@@ -790,6 +792,7 @@ int main(int argc, char *argv[])
                     hits = checker->findHits(ZETA5, theConst, 5, getLookupTableFloat(), NULL, doubleHitCount);
 
                     doubleHitCounts[zrootIdx] = doubleHitCount;
+                    float128HitCounts[zrootIdx] = static_cast<long>(hits->size());
 
                     int* result = nullptr;
                     for (size_t i = 0; i < hits->size(); i++) {
@@ -810,11 +813,20 @@ int main(int argc, char *argv[])
             if (doubleHitCounts[0].has_value()) {
                 updateFields.push_back("double_hit_count1 = " + std::to_string(doubleHitCounts[0].value()));
             }
+            if (float128HitCounts[0].has_value()) {
+                updateFields.push_back("float128_hit_count1 = " + std::to_string(float128HitCounts[0].value()));
+            }
             if (doubleHitCounts[1].has_value()) {
                 updateFields.push_back("double_hit_count2 = " + std::to_string(doubleHitCounts[1].value()));
             }
+            if (float128HitCounts[1].has_value()) {
+                updateFields.push_back("float128_hit_count2 = " + std::to_string(float128HitCounts[1].value()));
+            }
             if (doubleHitCounts[2].has_value()) {
                 updateFields.push_back("double_hit_count3 = " + std::to_string(doubleHitCounts[2].value()));
+            }
+            if (float128HitCounts[2].has_value()) {
+                updateFields.push_back("float128_hit_count3 = " + std::to_string(float128HitCounts[2].value()));
             }
 
             updateFields.push_back("is_finished = 1");
