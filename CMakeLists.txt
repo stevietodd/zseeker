@@ -156,6 +156,18 @@ target_link_libraries(
 )
 
 add_executable(
+  HitRefinementTestSuite
+  test/HitRefinementTestSuite.cpp
+  hitRefinement.cpp
+  lookupTableAccessor.cpp
+)
+target_link_libraries(
+  HitRefinementTestSuite
+  GTest::gtest_main
+  quadmath
+)
+
+add_executable(
   FindConstantsThatMakeZ3
   FindConstantsThatMakeZ3.cpp
 )
@@ -181,6 +193,7 @@ target_link_libraries(
 )
 
 gtest_discover_tests(LookupTableTestSuite)
+gtest_discover_tests(HitRefinementTestSuite)
 gtest_discover_tests(PrecisionTestSuite)
 gtest_discover_tests(ArithmeticTestSuite)
 gtest_discover_tests(CpuPolynomialCheckerTestSuite)
