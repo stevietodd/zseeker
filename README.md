@@ -5,7 +5,7 @@ zseeker attempts to find a constant c such that
 (A/B)*c^3 + (C/D)*c^2 + (E/F)*c + (G/H) = zeta(3)
 (I/J)*c^5 + (K/L)*c^4 + (M/N)*c^3 + (O/P)*c^2 + (Q/R)*c + (S/T) = zeta(5)
 
-for reasonably selected integers A through T.
+for reasonably selected integers A through T. These integers are loosely bounded by the coefficients that define the closed terms for zeta(4) and zeta(6).
 
 Coefficients come from a lookup table of small rationals. Checkers scan combinations in three stages: a float pass to throw out obvious misses, a double confirmation, then a `__float128` (libquadmath) re-evaluation using the LUT numerators and denominators.
 
