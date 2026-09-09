@@ -7,7 +7,7 @@ zseeker attempts to find a constant c such that
 
 for reasonably selected integers A through T. These integers are loosely bounded by the coefficients that define the closed terms for zeta(4) and zeta(6).
 
-Coefficients come from a lookup table of small rationals. Checkers scan combinations in three stages: a float pass to throw out obvious misses, a double confirmation, then a `__float128` (libquadmath) re-evaluation using the LUT numerators and denominators.
+Coefficients come from a lookup table of small rationals divided by each other and filtered to remove duplicates. Checkers scan combinations in three stages: a float pass to throw out obvious misses, a double confirmation, then a `__float128` (libquadmath) re-evaluation using the LUT numerators and denominators.
 
 `findHits` reports the double-verified count in `doubleHitCount`. After return, `hits->size()` is the float128-refined count. Those two numbers are stored as `double_hit_count*` and `float128_hit_count*` on `roots_checked` (and on slice rows when slicing is enabled).
 
