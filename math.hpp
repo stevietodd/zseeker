@@ -20,7 +20,7 @@
 
 #define USE_DEFAULT 1'000'000 // this is kind of a hack. Only works because the number of total coeffs currently is 608,384
 
-// Tile size for roots_checked_slice auto-population (GpuQuinticFirst quint x quart index rectangle).
+// Tile size for roots_checked_slice population (GpuQuinticFirst quint x quart index rectangle).
 #define DEFAULT_SLICE_QUINT_CHUNK 1
 #define DEFAULT_SLICE_QUART_CHUNK 30
 

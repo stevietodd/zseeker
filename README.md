@@ -9,7 +9,9 @@ for reasonably selected integers A through T. These integers are loosely bounded
 
 Coefficients come from a lookup table of small rationals divided by each other and filtered to remove duplicates. Checkers scan combinations in three stages: a float pass to throw out obvious misses, a double confirmation, then a `__float128` (libquadmath) re-evaluation using the LUT numerators and denominators.
 
-`findHits` reports the double-verified count in `doubleHitCount`. After return, `hits->size()` is the float128-refined count. Those two numbers are stored as `double_hit_count*` and `float128_hit_count*` on `roots_checked` (and on slice rows when slicing is enabled).
+`findHits` reports the double-verified count in `doubleHitCount`. After return, `hits->size()` is the float128-refined count. Those two numbers are stored as `double_hit_count*` / `float128_hit_count*` on both the slice row and the parent `roots_checked` row.
+
+Work is always 1-quintic by 30-quartic tiles (`roots_checked_slice`). Unfinished cubic roots without tiles are tiled automatically.
 
 ## Build
 
@@ -45,5 +47,4 @@ Checker argument (default is CPU quintic-first with breakouts):
 
 Optional environment:
 
-- `ZSEEKER_USE_ROOT_SLICES=1` — pull work from `roots_checked_slice` instead of whole-root rows
 - `ZSEEKER_REFINE_TOL` — float128 tolerance (default `1e-12`)

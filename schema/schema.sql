@@ -76,7 +76,8 @@ CREATE TABLE `roots_checked` (
 
 --
 -- Fine-grained work units: one row per (cubic root, zroot slot, quint x quart rectangle).
--- Use with ZSEEKER_USE_ROOT_SLICES=1 in main; see populate_slices_for_cubic_root procedure.
+-- zseeker2 always uses this queue; tiles are 1 quintic index by 30 quartic indices
+-- (see populate_slices_for_cubic_root).
 --
 
 DROP TABLE IF EXISTS `roots_checked_slice`;
