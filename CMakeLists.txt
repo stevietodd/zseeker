@@ -76,6 +76,8 @@ add_executable(
 add_executable(
   zseeker2
   main.cpp
+  CubicRootSliceWorker.cpp
+  CubicRootSliceWorker.hpp
   hitRefinement.cpp
   PolynomialCheckerInterface.hpp
   CpuPolynomialChecker.hpp
