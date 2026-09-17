@@ -110,6 +110,7 @@ std::vector<int*>* CpuQuinticLastChecker::findHits(
                             // mimic how the Gpu checker does it
 
                             if (FLOAT_BASICALLY_EQUAL(v5, needlef, floatTol)) {
+								// since our float was in range, calculate the double value and check for a "real hit"
 								doubleValue = ((u < 0) ? -doubleLUT[-u] : doubleLUT[u]) * theConst5
 									+ ((v < 0) ? -doubleLUT[-v] : doubleLUT[v]) * theConst4
 									+ ((w < 0) ? -doubleLUT[-w] : doubleLUT[w]) * theConst3

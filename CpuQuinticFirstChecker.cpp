@@ -117,6 +117,7 @@ std::vector<int*>* CpuQuinticFirstChecker::findHits(
                             v0 = v1 + ((z < 0) ? -LUT[-z] : LUT[z]);
 
                             if (FLOAT_BASICALLY_EQUAL(v0, needlef, floatTol)) {
+								// since our float was in range, calculate the double value and check for a "real hit"
 								doubleValue = ((u < 0) ? -doubleLUT[-u] : doubleLUT[u]) * theConst5
 									+ ((v < 0) ? -doubleLUT[-v] : doubleLUT[v]) * theConst4
 									+ ((w < 0) ? -doubleLUT[-w] : doubleLUT[w]) * theConst3
