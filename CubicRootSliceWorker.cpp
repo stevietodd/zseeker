@@ -17,33 +17,13 @@
 #include "GpuPolynomialChecker.hpp"
 #include "lookupTableAccessor.hpp"
 #include "math.hpp"
+#include "sliceTiling.hpp"
 
 namespace {
 constexpr int kWorkItemsPerQuery = 1;
 }
 
 struct CubicRootSliceWorker::Impl {
-    struct LutBounds {
-        int quintMin;
-        int quintMax;
-        int quartMin;
-        int quartMax;
-    };
-
-    struct TileRect {
-        int qLo;
-        int qHi;
-        int rLo;
-        int rHi;
-    };
-
-    struct SlotPlan {
-        int quintChunk;
-        int quartChunk;
-        LutBounds bounds;
-        TileRect probe;
-    };
-
     struct SliceWorkItem {
         long long sliceId;
         int cubicRootId;
@@ -60,13 +40,6 @@ struct CubicRootSliceWorker::Impl {
         long float128Hits = 0;
     };
 
-    struct Region {
-        int q0;
-        int q1;
-        int r0;
-        int r1;
-    };
-
     MYSQL* mysql_;
     PolynomialCheckerInterface* checker_;
     int workerId_ = -1;
@@ -77,18 +50,8 @@ struct CubicRootSliceWorker::Impl {
     bool resolveWorkerId();
     bool runOneCubicRoot();
 
-    static LutBounds makeLutBounds(bool positiveOnlyQuint);
     static bool checkerUsesPositiveOnlyQuint(PolynomialCheckerInterface* checker);
     static double targetSliceRuntimeSec();
-    static bool sameTile(const TileRect& a, const TileRect& b);
-    static std::array<Region, 2> remainingRegions(const SlotPlan& p);
-    static bool regionNonEmpty(const Region& reg);
-    static bool firstTileInRegion(const SlotPlan& p, const Region& reg, TileRect& out);
-    static bool nextTileAfterInRegion(const SlotPlan& p, const Region& reg, const TileRect& last, TileRect& out);
-    static int regionIndexOfRemaining(const SlotPlan& p, const TileRect& t);
-    static bool nextRemainingTiles(const SlotPlan& p, const TileRect& last, bool lastIsProbe, int maxN, std::vector<TileRect>& out);
-    static std::pair<int, int> chunksFromProbe(double probeSec, const LutBounds& bounds);
-    static std::vector<int> makeQuinticFirstSliceLoopRanges(int quintLo, int quintHi, int quartLo, int quartHi);
     static void freeHitsVector(std::vector<int*>* hits);
 
     std::optional<int> lookupWorkerId();
@@ -122,7 +85,7 @@ struct CubicRootSliceWorker::Impl {
 CubicRootSliceWorker::Impl::Impl(MYSQL* mysql, PolynomialCheckerInterface* checker)
     : mysql_(mysql)
     , checker_(checker)
-    , bounds_(makeLutBounds(checkerUsesPositiveOnlyQuint(checker)))
+    , bounds_(lutBoundsForChecker(checkerUsesPositiveOnlyQuint(checker)))
 {
 }
 
@@ -154,15 +117,6 @@ bool CubicRootSliceWorker::Impl::runOneCubicRoot() {
     }
     processCubicRoot(*rootId);
     return true;
-}
-
-CubicRootSliceWorker::Impl::LutBounds CubicRootSliceWorker::Impl::makeLutBounds(bool positiveOnlyQuint) {
-    return {
-        positiveOnlyQuint ? 0 : SLICE_QUINT_MIN,
-        SLICE_QUINT_MAX,
-        SLICE_QUART_MIN,
-        SLICE_QUART_MAX
-    };
 }
 
 bool CubicRootSliceWorker::Impl::checkerUsesPositiveOnlyQuint(PolynomialCheckerInterface* checker) {
@@ -399,10 +353,6 @@ bool CubicRootSliceWorker::Impl::loadFirstNonProbeTile(int cubicRootId, int slot
     return ok;
 }
 
-bool CubicRootSliceWorker::Impl::sameTile(const TileRect& a, const TileRect& b) {
-    return a.qLo == b.qLo && a.qHi == b.qHi && a.rLo == b.rLo && a.rHi == b.rHi;
-}
-
 bool CubicRootSliceWorker::Impl::inferPlanFromDb(int cubicRootId, int slot, SlotPlan& plan) {
     TileRect probe{};
     long long probeId = 0;
@@ -433,143 +383,6 @@ bool CubicRootSliceWorker::Impl::planForSlot(int cubicRootId, int slot, SlotPlan
     }
     slotPlans_[key] = plan;
     return true;
-}
-
-std::array<CubicRootSliceWorker::Impl::Region, 2> CubicRootSliceWorker::Impl::remainingRegions(const SlotPlan& p) {
-    return {{
-        {p.probe.qLo, p.probe.qHi, p.probe.rHi + 1, p.bounds.quartMax},
-        {p.probe.qHi + 1, p.bounds.quintMax, p.bounds.quartMin, p.bounds.quartMax}
-    }};
-}
-
-bool CubicRootSliceWorker::Impl::regionNonEmpty(const Region& reg) {
-    return reg.q0 <= reg.q1 && reg.r0 <= reg.r1;
-}
-
-bool CubicRootSliceWorker::Impl::firstTileInRegion(const SlotPlan& p, const Region& reg, TileRect& out) {
-    if (!regionNonEmpty(reg)) {
-        return false;
-    }
-    out.qLo = reg.q0;
-    out.qHi = std::min(reg.q0 + p.quintChunk - 1, reg.q1);
-    out.rLo = reg.r0;
-    out.rHi = std::min(reg.r0 + p.quartChunk - 1, reg.r1);
-    return true;
-}
-
-bool CubicRootSliceWorker::Impl::nextTileAfterInRegion(const SlotPlan& p, const Region& reg, const TileRect& last, TileRect& out) {
-    const int nextR = last.rHi + 1;
-    if (nextR <= reg.r1) {
-        out.qLo = last.qLo;
-        out.qHi = std::min(last.qLo + p.quintChunk - 1, reg.q1);
-        out.rLo = nextR;
-        out.rHi = std::min(nextR + p.quartChunk - 1, reg.r1);
-        return true;
-    }
-    const int nextQ = last.qHi + 1;
-    if (nextQ <= reg.q1) {
-        out.qLo = nextQ;
-        out.qHi = std::min(nextQ + p.quintChunk - 1, reg.q1);
-        out.rLo = reg.r0;
-        out.rHi = std::min(reg.r0 + p.quartChunk - 1, reg.r1);
-        return true;
-    }
-    return false;
-}
-
-int CubicRootSliceWorker::Impl::regionIndexOfRemaining(const SlotPlan& p, const TileRect& t) {
-    if (t.qLo >= p.probe.qLo && t.qLo <= p.probe.qHi && t.rLo > p.probe.rHi) {
-        return 0;
-    }
-    if (t.qLo > p.probe.qHi) {
-        return 1;
-    }
-    return -1;
-}
-
-bool CubicRootSliceWorker::Impl::nextRemainingTiles(const SlotPlan& p, const TileRect& last, bool lastIsProbe, int maxN, std::vector<TileRect>& out) {
-    out.clear();
-    const auto regs = remainingRegions(p);
-    int ri = 0;
-    TileRect cursor{};
-
-    auto seekFirstFrom = [&](int startRi) {
-        ri = startRi;
-        while (ri < 2 && !firstTileInRegion(p, regs[ri], cursor)) {
-            ++ri;
-        }
-        return ri < 2;
-    };
-
-    if (lastIsProbe) {
-        if (!seekFirstFrom(0)) {
-            return false;
-        }
-        out.push_back(cursor);
-    } else {
-        ri = regionIndexOfRemaining(p, last);
-        if (ri < 0) {
-            if (!seekFirstFrom(0)) {
-                return false;
-            }
-            out.push_back(cursor);
-        } else if (nextTileAfterInRegion(p, regs[ri], last, cursor)) {
-            out.push_back(cursor);
-        } else if (!seekFirstFrom(ri + 1)) {
-            return false;
-        } else {
-            out.push_back(cursor);
-        }
-    }
-
-    while (static_cast<int>(out.size()) < maxN) {
-        TileRect n{};
-        if (nextTileAfterInRegion(p, regs[ri], out.back(), n)) {
-            out.push_back(n);
-            continue;
-        }
-        ++ri;
-        if (ri >= 2 || !firstTileInRegion(p, regs[ri], n)) {
-            break;
-        }
-        out.push_back(n);
-    }
-    return !out.empty();
-}
-
-std::pair<int, int> CubicRootSliceWorker::Impl::chunksFromProbe(double probeSec, const LutBounds& bounds) {
-    const long long probeCells = static_cast<long long>(DEFAULT_SLICE_QUINT_CHUNK) * DEFAULT_SLICE_QUART_CHUNK;
-    if (probeSec < 1e-9) {
-        probeSec = 1e-9;
-    }
-    const double target = targetSliceRuntimeSec();
-    long long cells = static_cast<long long>(std::llround(target / (probeSec / static_cast<double>(probeCells))));
-    if (cells < probeCells) {
-        cells = probeCells;
-    }
-
-    const int quartSpan = bounds.quartMax - bounds.quartMin + 1;
-    const int quintSpan = bounds.quintMax - bounds.quintMin + 1;
-    const int maxQuart = std::min(quartSpan, SLICE_MAX_QUART_RANGE);
-    const int maxQuint = std::min(quintSpan, SLICE_MAX_QUINT_RANGE);
-
-    int quartChunk = DEFAULT_SLICE_QUART_CHUNK;
-    int quintChunk = DEFAULT_SLICE_QUINT_CHUNK;
-    if (cells <= maxQuart) {
-        quartChunk = static_cast<int>(cells);
-        quintChunk = 1;
-    } else {
-        quartChunk = maxQuart;
-        long long q = (cells + maxQuart - 1) / maxQuart;
-        if (q < 1) {
-            q = 1;
-        }
-        if (q > maxQuint) {
-            q = maxQuint;
-        }
-        quintChunk = static_cast<int>(q);
-    }
-    return {quintChunk, quartChunk};
 }
 
 std::optional<long long> CubicRootSliceWorker::Impl::insertSliceRow(
@@ -819,18 +632,6 @@ void CubicRootSliceWorker::Impl::freeHitsVector(std::vector<int*>* hits) {
     delete hits;
 }
 
-std::vector<int> CubicRootSliceWorker::Impl::makeQuinticFirstSliceLoopRanges(int quintLo, int quintHi, int quartLo, int quartHi) {
-    return {
-        quintLo, quintHi,
-        quartLo, quartHi,
-        USE_DEFAULT, USE_DEFAULT,
-        USE_DEFAULT, USE_DEFAULT,
-        USE_DEFAULT, USE_DEFAULT,
-        USE_DEFAULT, USE_DEFAULT,
-        USE_DEFAULT, USE_DEFAULT
-    };
-}
-
 CubicRootSliceWorker::Impl::SliceSearchResult CubicRootSliceWorker::Impl::executeSliceSearch(const SliceWorkItem& s) {
     SliceSearchResult result;
     std::cout << "\n=== Slice id=" << s.sliceId << " cubic_root_id=" << s.cubicRootId
@@ -873,12 +674,7 @@ bool CubicRootSliceWorker::Impl::slotHasSlices(int cubicRootId, int slot) {
 }
 
 bool CubicRootSliceWorker::Impl::probeZrootSlot(int cubicRootId, int slot, double zrootVal) {
-    const TileRect probe{
-        bounds_.quintMin,
-        bounds_.quintMin + DEFAULT_SLICE_QUINT_CHUNK - 1,
-        bounds_.quartMin,
-        bounds_.quartMin + DEFAULT_SLICE_QUART_CHUNK - 1
-    };
+    const TileRect probe = makeProbeTile(bounds_);
     const std::optional<long long> sliceId = insertSliceRow(cubicRootId, slot, probe, true, workerId_);
     if (!sliceId.has_value()) {
         return false;
@@ -905,7 +701,7 @@ bool CubicRootSliceWorker::Impl::probeZrootSlot(int cubicRootId, int slot, doubl
         return false;
     }
 
-    const auto chunks = chunksFromProbe(probeSec, bounds_);
+    const auto chunks = chunksFromProbe(probeSec, bounds_, targetSliceRuntimeSec());
     SlotPlan plan;
     plan.quintChunk = chunks.first;
     plan.quartChunk = chunks.second;

@@ -78,6 +78,7 @@ add_executable(
   main.cpp
   CubicRootSliceWorker.cpp
   CubicRootSliceWorker.hpp
+  sliceTiling.hpp
   hitRefinement.cpp
   PolynomialCheckerInterface.hpp
   CpuPolynomialChecker.hpp
@@ -194,8 +195,18 @@ target_link_libraries(
   quadmath
 )
 
+add_executable(
+  CubicRootSliceWorkerTestSuite
+  test/CubicRootSliceWorkerTestSuite.cpp
+)
+target_link_libraries(
+  CubicRootSliceWorkerTestSuite
+  GTest::gtest_main
+)
+
 gtest_discover_tests(LookupTableTestSuite)
 gtest_discover_tests(HitRefinementTestSuite)
 gtest_discover_tests(PrecisionTestSuite)
 gtest_discover_tests(ArithmeticTestSuite)
 gtest_discover_tests(CpuPolynomialCheckerTestSuite)
+gtest_discover_tests(CubicRootSliceWorkerTestSuite)
