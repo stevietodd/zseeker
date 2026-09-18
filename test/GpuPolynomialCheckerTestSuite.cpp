@@ -116,7 +116,7 @@ TEST(GpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
         0, 1,
-        4900, 5000, // 4912 corresponds to the coeff 1/90 which should hit
+        4'900, 5'700, // 4912 corresponds to the coeff 1/90 which should hit directly
         0, 1,
         USE_DEFAULT, USE_DEFAULT,
         USE_DEFAULT, USE_DEFAULT,
@@ -125,12 +125,13 @@ TEST(GpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {
 
     hits = checker->findHits(ZETA4, M_PI, 5, getLookupTableFloat(), loopRanges, doubleHitCount);
 
+	ASSERT_EQ(3, doubleHitCount);
     ASSERT_EQ(1, hits->size());
 
     bool hitFound = false;
     int expectedHit[] = {0, 4912, 0, 0, 0, 0}; // pi^4 / 90 = zeta(4)
     for (int* hit : *hits) {
-        if (0 == std::memcmp(hit, expectedHit, sizeof(expectedHit))) {
+		if (0 == std::memcmp(hit, expectedHit, sizeof(expectedHit))) {
             hitFound = true;
             break;
         }

@@ -107,11 +107,12 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticLastZeta4WithPiTest) {
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		0, 0,
-		4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit
-		-2, 2,
-		-2, 2,
-		-2, 2,
-		USE_DEFAULT, USE_DEFAULT};
+        4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit directly
+        -2, 2,
+        -2, 2,
+        -2, 2,
+        USE_DEFAULT, USE_DEFAULT
+	};
 
     hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, doubleHitCount);
 
@@ -171,11 +172,12 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstZeta4WithPiTest) {
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		0, 0,
-		4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit
-		-2, 2,
-		-2, 2,
-		-2, 2,
-		USE_DEFAULT, USE_DEFAULT};
+        4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit directly
+        -2, 2,
+        -2, 2,
+        -2, 2,
+        USE_DEFAULT, USE_DEFAULT
+	};
 
     hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, doubleHitCount);
 
@@ -234,11 +236,12 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsZeta4WithPiTest) {
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		0, 0,
-		4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit
-		-2, 2,
-		-2, 2,
-		-2, 2,
-		USE_DEFAULT, USE_DEFAULT};
+        4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit directly
+        -2, 2,
+        -2, 2,
+        -2, 2,
+        USE_DEFAULT, USE_DEFAULT
+	};
 
     hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, doubleHitCount);
 
