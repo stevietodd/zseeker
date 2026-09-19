@@ -1,17 +1,11 @@
 #include "CubicRootSliceWorker.hpp"
 
-#include <algorithm>
 #include <array>
-#include <chrono>
-#include <cmath>
-#include <cstdlib>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <unistd.h>
-#include <utility>
 #include <vector>
 
 #include "GpuPolynomialChecker.hpp"
@@ -44,14 +38,12 @@ struct CubicRootSliceWorker::Impl {
     PolynomialCheckerInterface* checker_;
     int workerId_ = -1;
     LutBounds bounds_{};
-    std::map<std::pair<int, int>, SlotPlan> slotPlans_;
 
     Impl(MYSQL* mysql, PolynomialCheckerInterface* checker);
     bool resolveWorkerId();
     bool runOneCubicRoot();
 
     static bool checkerUsesPositiveOnlyQuint(PolynomialCheckerInterface* checker);
-    static double targetSliceRuntimeSec();
     static void freeHitsVector(std::vector<int*>* hits);
 
     std::optional<int> lookupWorkerId();
@@ -62,21 +54,14 @@ struct CubicRootSliceWorker::Impl {
     std::optional<int> enqueueRemainingForAnyUnfinishedRoot();
     std::optional<int> claimNewCubicRoot();
     bool loadLastTile(int cubicRootId, int slot, TileRect& out);
-    bool loadFirstTile(int cubicRootId, int slot, TileRect& out, long long& sliceId);
-    bool loadFirstNonProbeTile(int cubicRootId, int slot, long long probeId, TileRect& out);
-    bool inferPlanFromDb(int cubicRootId, int slot, SlotPlan& plan);
-    bool planForSlot(int cubicRootId, int slot, SlotPlan& plan);
-    std::optional<long long> insertSliceRow(int cubicRootId, int slot, const TileRect& t, bool started, std::optional<int> workerId);
     bool insertSliceBatchUnstarted(int cubicRootId, int slot, const std::vector<TileRect>& tiles);
-    bool enqueueNextRemainingForRoot(int cubicRootId);
+    bool enqueueNextTilesForRoot(int cubicRootId);
     std::vector<SliceWorkItem> getSliceWorkToBeDone(std::optional<int> cubicRootId);
     bool updateSliceFinished(long long sliceId, long doubleHits, long float128Hits);
     bool addSliceHitsToRootsChecked(int cubicRootId, int zrootSlot, long doubleHits, long float128Hits);
     bool finalizeRootsCheckedIfAllSlicesDone(int cubicRootId);
     SliceSearchResult executeSliceSearch(const SliceWorkItem& s);
     bool persistSliceResult(const SliceWorkItem& s, const SliceSearchResult& result);
-    bool slotHasSlices(int cubicRootId, int slot);
-    bool probeZrootSlot(int cubicRootId, int slot, double zrootVal);
     void processCubicRoot(int cubicRootId);
     void runOneSlice(const SliceWorkItem& s);
 };
@@ -95,9 +80,8 @@ bool CubicRootSliceWorker::Impl::resolveWorkerId() {
         return false;
     }
     workerId_ = *workerId;
-    std::cout << "Cubic-root work: " << DEFAULT_SLICE_QUINT_CHUNK << "x" << DEFAULT_SLICE_QUART_CHUNK
-              << " probe, then remaining tiles sized toward " << targetSliceRuntimeSec()
-              << "s (quint LUT [" << bounds_.quintMin << "," << bounds_.quintMax << "])." << std::endl;
+    std::cout << "Cubic-root work: " << SLICE_QUINT_CHUNK << "x" << SLICE_QUART_CHUNK
+              << " slices (quint LUT [" << bounds_.quintMin << "," << bounds_.quintMax << "])." << std::endl;
     return true;
 }
 
@@ -124,17 +108,6 @@ bool CubicRootSliceWorker::Impl::checkerUsesPositiveOnlyQuint(PolynomialCheckerI
         || dynamic_cast<GpuQuinticFirstCheckerPositiveOnlyTopFour*>(checker) != nullptr
         || dynamic_cast<GpuQuinticFirstCheckerPositiveOnlyTopFive*>(checker) != nullptr
         || dynamic_cast<GpuQuinticFirstCheckerPositiveOnlyTopSix*>(checker) != nullptr;
-}
-
-double CubicRootSliceWorker::Impl::targetSliceRuntimeSec() {
-    const char* v = getenv("ZSEEKER_SLICE_TARGET_SEC");
-    if (v && *v) {
-        const double d = std::atof(v);
-        if (d > 0) {
-            return d;
-        }
-    }
-    return TARGET_SLICE_RUNTIME_SEC;
 }
 
 std::optional<int> CubicRootSliceWorker::Impl::lookupWorkerId() {
@@ -251,7 +224,7 @@ std::optional<int> CubicRootSliceWorker::Impl::enqueueRemainingForAnyUnfinishedR
     }
     mysql_free_result(res);
     for (int id : ids) {
-        if (enqueueNextRemainingForRoot(id)) {
+        if (enqueueNextTilesForRoot(id)) {
             return id;
         }
     }
@@ -302,116 +275,6 @@ bool CubicRootSliceWorker::Impl::loadLastTile(int cubicRootId, int slot, TileRec
     return ok;
 }
 
-bool CubicRootSliceWorker::Impl::loadFirstTile(int cubicRootId, int slot, TileRect& out, long long& sliceId) {
-    std::string q = "SELECT id, quint_lo, quint_hi, quart_lo, quart_hi FROM roots_checked_slice WHERE cubic_root_id = "
-        + std::to_string(cubicRootId) + " AND zroot_slot = " + std::to_string(slot)
-        + " ORDER BY id ASC LIMIT 1";
-    if (mysql_query(mysql_, q.c_str())) {
-        std::cerr << "Error: first-tile query failed: " << mysql_error(mysql_) << std::endl;
-        return false;
-    }
-    MYSQL_RES* res = mysql_store_result(mysql_);
-    if (!res) {
-        std::cerr << "Error: mysql_store_result failed for first-tile query" << std::endl;
-        return false;
-    }
-    MYSQL_ROW row = mysql_fetch_row(res);
-    const bool ok = row && row[0] && row[1] && row[2] && row[3] && row[4];
-    if (ok) {
-        sliceId = std::stoll(row[0]);
-        out.qLo = std::stoi(row[1]);
-        out.qHi = std::stoi(row[2]);
-        out.rLo = std::stoi(row[3]);
-        out.rHi = std::stoi(row[4]);
-    }
-    mysql_free_result(res);
-    return ok;
-}
-
-bool CubicRootSliceWorker::Impl::loadFirstNonProbeTile(int cubicRootId, int slot, long long probeId, TileRect& out) {
-    std::string q = "SELECT quint_lo, quint_hi, quart_lo, quart_hi FROM roots_checked_slice WHERE cubic_root_id = "
-        + std::to_string(cubicRootId) + " AND zroot_slot = " + std::to_string(slot)
-        + " AND id <> " + std::to_string(probeId) + " ORDER BY id ASC LIMIT 1";
-    if (mysql_query(mysql_, q.c_str())) {
-        std::cerr << "Error: non-probe tile query failed: " << mysql_error(mysql_) << std::endl;
-        return false;
-    }
-    MYSQL_RES* res = mysql_store_result(mysql_);
-    if (!res) {
-        std::cerr << "Error: mysql_store_result failed for non-probe tile query" << std::endl;
-        return false;
-    }
-    MYSQL_ROW row = mysql_fetch_row(res);
-    const bool ok = row && row[0] && row[1] && row[2] && row[3];
-    if (ok) {
-        out.qLo = std::stoi(row[0]);
-        out.qHi = std::stoi(row[1]);
-        out.rLo = std::stoi(row[2]);
-        out.rHi = std::stoi(row[3]);
-    }
-    mysql_free_result(res);
-    return ok;
-}
-
-bool CubicRootSliceWorker::Impl::inferPlanFromDb(int cubicRootId, int slot, SlotPlan& plan) {
-    TileRect probe{};
-    long long probeId = 0;
-    if (!loadFirstTile(cubicRootId, slot, probe, probeId)) {
-        return false;
-    }
-    plan.bounds = bounds_;
-    plan.probe = probe;
-    plan.quintChunk = DEFAULT_SLICE_QUINT_CHUNK;
-    plan.quartChunk = DEFAULT_SLICE_QUART_CHUNK;
-    TileRect later{};
-    if (loadFirstNonProbeTile(cubicRootId, slot, probeId, later)) {
-        plan.quintChunk = std::max(1, later.qHi - later.qLo + 1);
-        plan.quartChunk = std::max(DEFAULT_SLICE_QUART_CHUNK, later.rHi - later.rLo + 1);
-    }
-    return true;
-}
-
-bool CubicRootSliceWorker::Impl::planForSlot(int cubicRootId, int slot, SlotPlan& plan) {
-    const auto key = std::make_pair(cubicRootId, slot);
-    auto it = slotPlans_.find(key);
-    if (it != slotPlans_.end()) {
-        plan = it->second;
-        return true;
-    }
-    if (!inferPlanFromDb(cubicRootId, slot, plan)) {
-        return false;
-    }
-    slotPlans_[key] = plan;
-    return true;
-}
-
-std::optional<long long> CubicRootSliceWorker::Impl::insertSliceRow(
-    int cubicRootId,
-    int slot,
-    const TileRect& t,
-    bool started,
-    std::optional<int> workerId)
-{
-    std::string q = "INSERT IGNORE INTO roots_checked_slice (cubic_root_id, zroot_slot, quint_lo, quint_hi, quart_lo, quart_hi, worker_id, is_started) VALUES ("
-        + std::to_string(cubicRootId) + "," + std::to_string(slot) + ","
-        + std::to_string(t.qLo) + "," + std::to_string(t.qHi) + ","
-        + std::to_string(t.rLo) + "," + std::to_string(t.rHi) + ",";
-    if (workerId.has_value()) {
-        q += std::to_string(*workerId);
-    } else {
-        q += "NULL";
-    }
-    q += "," + std::to_string(started ? 1 : 0) + ")";
-    if (mysql_query(mysql_, q.c_str())) {
-        std::cerr << "Error: slice INSERT failed: " << mysql_error(mysql_) << std::endl;
-        return std::nullopt;
-    }
-    if (mysql_affected_rows(mysql_) == 0) {
-        return 0;
-    }
-    return static_cast<long long>(mysql_insert_id(mysql_));
-}
-
 bool CubicRootSliceWorker::Impl::insertSliceBatchUnstarted(int cubicRootId, int slot, const std::vector<TileRect>& tiles) {
     if (tiles.empty()) {
         return true;
@@ -433,27 +296,24 @@ bool CubicRootSliceWorker::Impl::insertSliceBatchUnstarted(int cubicRootId, int 
     return true;
 }
 
-bool CubicRootSliceWorker::Impl::enqueueNextRemainingForRoot(int cubicRootId) {
+bool CubicRootSliceWorker::Impl::enqueueNextTilesForRoot(int cubicRootId) {
+    const auto zroots = loadZroots(cubicRootId);
     bool any = false;
     for (int slot = 1; slot <= 3; ++slot) {
-        SlotPlan plan{};
-        if (!planForSlot(cubicRootId, slot, plan)) {
+        if (!zroots[slot].has_value()) {
             continue;
         }
         TileRect last{};
-        if (!loadLastTile(cubicRootId, slot, last)) {
-            continue;
-        }
-        const bool lastIsProbe = sameTile(last, plan.probe);
+        const bool haveLast = loadLastTile(cubicRootId, slot, last);
         std::vector<TileRect> tiles;
-        if (!nextRemainingTiles(plan, last, lastIsProbe, SLICE_ENQUEUE_BATCH, tiles)) {
+        if (!nextTiles(bounds_, last, haveLast, SLICE_ENQUEUE_BATCH, tiles)) {
             continue;
         }
         if (!insertSliceBatchUnstarted(cubicRootId, slot, tiles)) {
             return false;
         }
-        std::cout << "Enqueued " << tiles.size() << " remaining slice(s) for cubic_root_id " << cubicRootId
-                  << " zroot_slot=" << slot << " at " << plan.quintChunk << "x" << plan.quartChunk << std::endl;
+        std::cout << "Enqueued " << tiles.size() << " slice(s) for cubic_root_id " << cubicRootId
+                  << " zroot_slot=" << slot << " at " << SLICE_QUINT_CHUNK << "x" << SLICE_QUART_CHUNK << std::endl;
         any = true;
     }
     return any;
@@ -667,54 +527,6 @@ bool CubicRootSliceWorker::Impl::persistSliceResult(const SliceWorkItem& s, cons
     return addSliceHitsToRootsChecked(s.cubicRootId, s.zrootSlot, result.doubleHits, result.float128Hits);
 }
 
-bool CubicRootSliceWorker::Impl::slotHasSlices(int cubicRootId, int slot) {
-    return fetchSingleInt(
-        "SELECT 1 FROM roots_checked_slice WHERE cubic_root_id = " + std::to_string(cubicRootId)
-        + " AND zroot_slot = " + std::to_string(slot) + " LIMIT 1").has_value();
-}
-
-bool CubicRootSliceWorker::Impl::probeZrootSlot(int cubicRootId, int slot, double zrootVal) {
-    const TileRect probe = makeProbeTile(bounds_);
-    const std::optional<long long> sliceId = insertSliceRow(cubicRootId, slot, probe, true, workerId_);
-    if (!sliceId.has_value()) {
-        return false;
-    }
-    if (*sliceId == 0) {
-        std::cout << "Probe tile already exists for cubic_root_id " << cubicRootId << " zroot_slot=" << slot << std::endl;
-        return true;
-    }
-
-    SliceWorkItem item;
-    item.sliceId = *sliceId;
-    item.cubicRootId = cubicRootId;
-    item.zrootSlot = slot;
-    item.quintLo = probe.qLo;
-    item.quintHi = probe.qHi;
-    item.quartLo = probe.rLo;
-    item.quartHi = probe.rHi;
-    item.zrootVal = zrootVal;
-
-    const auto t0 = std::chrono::steady_clock::now();
-    const SliceSearchResult result = executeSliceSearch(item);
-    const double probeSec = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-    if (!persistSliceResult(item, result)) {
-        return false;
-    }
-
-    const auto chunks = chunksFromProbe(probeSec, bounds_, targetSliceRuntimeSec());
-    SlotPlan plan;
-    plan.quintChunk = chunks.first;
-    plan.quartChunk = chunks.second;
-    plan.bounds = bounds_;
-    plan.probe = probe;
-    slotPlans_[std::make_pair(cubicRootId, slot)] = plan;
-
-    std::cout << "Probe for cubic_root_id " << cubicRootId << " zroot_slot=" << slot << " took " << probeSec
-              << "s; remaining tiles " << plan.quintChunk << "x" << plan.quartChunk << " (target "
-              << targetSliceRuntimeSec() << "s per tile)" << std::endl;
-    return true;
-}
-
 void CubicRootSliceWorker::Impl::processCubicRoot(int cubicRootId) {
     std::cout << "Processing cubic_root_id " << cubicRootId
               << "; this worker will keep claiming its slices until the root is done." << std::endl;
@@ -722,14 +534,9 @@ void CubicRootSliceWorker::Impl::processCubicRoot(int cubicRootId) {
     const auto zroots = loadZroots(cubicRootId);
     bool anySlot = false;
     for (int slot = 1; slot <= 3; ++slot) {
-        if (!zroots[slot].has_value()) {
-            continue;
-        }
-        anySlot = true;
-        if (!slotHasSlices(cubicRootId, slot)) {
-            if (!probeZrootSlot(cubicRootId, slot, zroots[slot].value())) {
-                return;
-            }
+        if (zroots[slot].has_value()) {
+            anySlot = true;
+            break;
         }
     }
 
@@ -751,7 +558,7 @@ void CubicRootSliceWorker::Impl::processCubicRoot(int cubicRootId) {
             }
             continue;
         }
-        if (enqueueNextRemainingForRoot(cubicRootId)) {
+        if (enqueueNextTilesForRoot(cubicRootId)) {
             continue;
         }
         break;

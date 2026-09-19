@@ -20,10 +20,10 @@
 
 #define USE_DEFAULT 1'000'000 // this is kind of a hack. Only works because the number of total coeffs currently is 608,384
 
-// Probe tile for a new cubic-root zroot slot (GpuQuinticFirst quint x quart index rectangle).
-// Remaining tiles are sized from the probe runtime; they are never smaller than this.
-#define DEFAULT_SLICE_QUINT_CHUNK 1
-#define DEFAULT_SLICE_QUART_CHUNK 30
+// Every roots_checked_slice tile is this many quint indices by this many quart indices.
+// The last quart strip of each quint may be shorter when the LUT span is not a multiple of 100.
+#define SLICE_QUINT_CHUNK 1
+#define SLICE_QUART_CHUNK 100
 
 // Full LUT index bounds used when tiling roots_checked_slice (matches populate_slices_for_cubic_root).
 #define SLICE_QUINT_MIN -608383
@@ -31,17 +31,7 @@
 #define SLICE_QUART_MIN -152231
 #define SLICE_QUART_MAX 152231
 
-// Aim for about this many seconds per remaining tile after the probe (overridable via ZSEEKER_SLICE_TARGET_SEC).
-#define TARGET_SLICE_RUNTIME_SEC 300
-
-// GpuQuinticFirst launch uses 8 threads along quint and quart; cap ranges so grid.x/y stay <= 65535.
-#define SLICE_GPU_BLOCK_QUINT 8
-#define SLICE_GPU_BLOCK_QUART 8
-#define SLICE_MAX_GRID_DIM 65535
-#define SLICE_MAX_QUINT_RANGE (SLICE_MAX_GRID_DIM * SLICE_GPU_BLOCK_QUINT)
-#define SLICE_MAX_QUART_RANGE (SLICE_MAX_GRID_DIM * SLICE_GPU_BLOCK_QUART)
-
-// Unstarted remaining tiles to insert at a time while this worker drains a cubic root.
+// Unstarted tiles to insert at a time while this worker drains a cubic root.
 #define SLICE_ENQUEUE_BATCH 8
 
 // logic taken from https://blog.demofox.org/2017/11/21/floating-point-precision/

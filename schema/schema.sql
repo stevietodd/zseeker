@@ -76,10 +76,9 @@ CREATE TABLE `roots_checked` (
 
 --
 -- Fine-grained work units: one row per (cubic root, zroot slot, quint x quart rectangle).
--- zseeker2 always uses this queue. A new cubic root starts with a timed 1x30 probe tile
--- per zroot slot; remaining rectangles are inserted at a size extrapolated from that
--- probe (never smaller than 1x30). populate_slices_for_cubic_root can still tile the
--- full LUT at a fixed chunk size for manual use.
+-- zseeker2 always uses this queue and always tiles each zroot slot as 1 quintic by 100
+-- quartics (the last quart strip of each quint may be shorter). populate_slices_for_cubic_root
+-- can still tile the full LUT at a fixed chunk size for manual use.
 --
 
 DROP TABLE IF EXISTS `roots_checked_slice`;
