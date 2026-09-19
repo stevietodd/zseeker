@@ -20,9 +20,19 @@
 
 #define USE_DEFAULT 1'000'000 // this is kind of a hack. Only works because the number of total coeffs currently is 608,384
 
-// Tile size for roots_checked_slice auto-population (GpuQuinticFirst quint x quart index rectangle).
-#define DEFAULT_SLICE_QUINT_CHUNK 1
-#define DEFAULT_SLICE_QUART_CHUNK 30
+// Every roots_checked_slice tile is this many quint indices by this many quart indices.
+// The last quart strip of each quint may be shorter when the LUT span is not a multiple of 100.
+#define SLICE_QUINT_CHUNK 1
+#define SLICE_QUART_CHUNK 100
+
+// Full LUT index bounds used when tiling roots_checked_slice (matches populate_slices_for_cubic_root).
+#define SLICE_QUINT_MIN -608383
+#define SLICE_QUINT_MAX 608383
+#define SLICE_QUART_MIN -152231
+#define SLICE_QUART_MAX 152231
+
+// Unstarted tiles to insert at a time while this worker drains a cubic root.
+#define SLICE_ENQUEUE_BATCH 8
 
 // logic taken from https://blog.demofox.org/2017/11/21/floating-point-precision/
 static inline double getDoublePrecisionBasedOnMaxValue(const double maxValue) {

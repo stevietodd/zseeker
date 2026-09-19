@@ -12,7 +12,7 @@
 TEST(CpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticLastChecker();
     std::vector<int*> *hits;
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int> *loopRanges = new std::vector<int>{
 		USE_DEFAULT, USE_DEFAULT,
 		-773, 773,
@@ -22,15 +22,16 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
 		0, 0 // skip this loop effectively
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, doubleHitCount);
 
 	// testing indicates there should be at least 21,445 float hits within tolerance range...
-	ASSERT_LE(171'720, floatHitCount);
+	//ASSERT_LE(171'720, floatHitCount);
 
     // ...but there should be closer to 26-28 depending on rounding. If there are too many hits something is wrong
-    EXPECT_GE(171'722, floatHitCount);
+    //EXPECT_GE(171'722, floatHitCount);
 
 	// ...however there should be 0 "real" double hits
+	ASSERT_EQ(0, doubleHitCount);
 	ASSERT_EQ(0, hits->size());
 
     // now let's ensure some close hits (err <= .000003) were returned
@@ -64,7 +65,7 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
  */
 TEST(CpuPolynomialCheckerTestSuite, QuinticLastZeroAndOneHighDegreesResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticLastChecker();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
 	std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		0, 1,
@@ -75,16 +76,17 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticLastZeroAndOneHighDegreesResultsConfi
 		USE_DEFAULT, USE_DEFAULT
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, doubleHitCount);
 
 	// testing indicates there should be at least 8,940 float hits within tolerance range...
 	//ASSERT_LE(8'940, floatHitCount);
 	//ASSERT_LE(74, floatHitCount); // why the change??
 	//ASSERT_LE(66'761, floatHitCount); // why the change again??
 	
-	ASSERT_GE(534'940, floatHitCount);
+	//ASSERT_GE(534'940, floatHitCount);
 
     // ...however there should be 0 "real" double hits
+	ASSERT_EQ(0, doubleHitCount);
 	ASSERT_EQ(0, hits->size());
 
     // // now let's ensure some close hits (err <= .000003) were returned
@@ -116,25 +118,27 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticLastZeroAndOneHighDegreesResultsConfi
 TEST(CpuPolynomialCheckerTestSuite, QuinticLastZeta4WithPiTest) {
     //GTEST_SKIP() << "Probably won't unskip this until qd work is added.";
     PolynomialCheckerInterface *checker = new CpuQuinticLastChecker();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		0, 0,
-		4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit
-		-2, 2,
-		-2, 2,
-		-2, 2,
-		USE_DEFAULT, USE_DEFAULT};
+        4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit directly
+        -2, 2,
+        -2, 2,
+        -2, 2,
+        USE_DEFAULT, USE_DEFAULT
+	};
 
-    hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, doubleHitCount);
 
 	// should find the real hit when zeta4 = (pi^4) / 90
+	ASSERT_EQ(1, doubleHitCount);
 	ASSERT_EQ(1, hits->size());
 }
 
 TEST(CpuPolynomialCheckerTestSuite, QuinticFirstOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticFirstChecker();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		USE_DEFAULT, USE_DEFAULT,
@@ -145,19 +149,19 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstOnlyQuinticQuarticResultsConfirm
 		0, 0 // skip this loop effectively
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
-
+    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, doubleHitCount);
 	// testing indicates there should be at least 8,940 float hits within tolerance range...
 	//ASSERT_LE(8'940, floatHitCount);
 	//ASSERT_LE(74, floatHitCount); // why the change??
-	ASSERT_LE(171'720, floatHitCount); // why the change again??
+	//ASSERT_LE(171'720, floatHitCount); // why the change again??
 
     // ...but there should be closer to 8,949 float hits depending on rounding. If there are too many something is wrong
     //EXPECT_GE(8'955, floatHitCount);
 	//ASSERT_GE(74, floatHitCount); // why the change??
-	ASSERT_GE(171'722, floatHitCount); // why the change again??
+	//ASSERT_GE(171'722, floatHitCount); // why the change again??
 
 	// ...however there should be 0 "real" double hits
+	ASSERT_EQ(0, doubleHitCount);
 	ASSERT_EQ(0, hits->size());
 
     // now let's ensure some close hits (err <= .000003) were returned
@@ -189,25 +193,27 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstOnlyQuinticQuarticResultsConfirm
 TEST(CpuPolynomialCheckerTestSuite, QuinticFirstZeta4WithPiTest) {
     //GTEST_SKIP() << "Probably won't unskip this until qd work is added.";
     PolynomialCheckerInterface *checker = new CpuQuinticFirstChecker();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		0, 0,
-		4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit
-		-2, 2,
-		-2, 2,
-		-2, 2,
-		USE_DEFAULT, USE_DEFAULT};
+        4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit directly
+        -2, 2,
+        -2, 2,
+        -2, 2,
+        USE_DEFAULT, USE_DEFAULT
+	};
 
-    hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, doubleHitCount);
 
 	// should find the real hit when zeta4 = (pi^4) / 90
+	ASSERT_EQ(1, doubleHitCount);
 	ASSERT_EQ(1, hits->size());
 }
 
 TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsOnlyQuinticQuarticResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new CpuQuinticFirstWithBreakoutsChecker();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{USE_DEFAULT, USE_DEFAULT,
 		-773, 773,
@@ -217,19 +223,19 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsOnlyQuinticQuarticR
 		0, 0 // skip this loop effectively
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
-
+    hits = checker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, doubleHitCount);
 	// testing indicates there should be at least 8,940 float hits within tolerance range...
 	//ASSERT_LE(8'940, floatHitCount);
 	//ASSERT_LE(74, floatHitCount); // why the change??
-	ASSERT_LE(171'720, floatHitCount); // why the change again??
+	//ASSERT_LE(171'720, floatHitCount); // why the change again??
 
     // ...but there should be closer to 8,949 float hits depending on rounding. If there are too many something is wrong
     //EXPECT_GE(8'955, floatHitCount);
 	//ASSERT_GE(74, floatHitCount); // why the change??
-	ASSERT_GE(171'722, floatHitCount); // why the change again??
+	//ASSERT_GE(171'722, floatHitCount); // why the change again??
 
 	// ...however there should be 0 "real" double hits
+	ASSERT_EQ(0, doubleHitCount);
 	ASSERT_EQ(0, hits->size());
 
     // now let's ensure some close hits (err <= .000003) were returned
@@ -261,26 +267,28 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsOnlyQuinticQuarticR
 TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsZeta4WithPiTest) {
     //GTEST_SKIP() << "Probably won't unskip this until qd work is added.";
     PolynomialCheckerInterface *checker = new CpuQuinticFirstWithBreakoutsChecker();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		0, 0,
-		4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit
-		-2, 2,
-		-2, 2,
-		-2, 2,
-		USE_DEFAULT, USE_DEFAULT};
+        4'900, 4'920, //4,912 corresponds to the coeff 1/90 which should hit directly
+        -2, 2,
+        -2, 2,
+        -2, 2,
+        USE_DEFAULT, USE_DEFAULT
+	};
 
-    hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA4, M_PI, 5, NULL, loopRanges, doubleHitCount);
 
 	// should find the real hit when zeta4 = (pi^4) / 90
+	ASSERT_EQ(1, doubleHitCount);
 	ASSERT_EQ(1, hits->size());
 }
 
 TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsSameAsNonBreakoutsTest) {
     PolynomialCheckerInterface *nonBreakoutsChecker = new CpuQuinticFirstChecker();
 	PolynomialCheckerInterface *withBreakoutsChecker = new CpuQuinticFirstWithBreakoutsChecker();
-    long floatHitCount = 0, breakoutFloatHitCount = 0;
+    long doubleHitCount = 0, breakoutDoubleHitCount = 0;
     std::vector<int*> *nonBreakoutHits;
     std::vector<int*> *withBreakoutHits;
 
@@ -298,16 +306,17 @@ TEST(CpuPolynomialCheckerTestSuite, QuinticFirstWithBreakoutsSameAsNonBreakoutsT
 		USE_DEFAULT, USE_DEFAULT
     };
 
-    nonBreakoutHits = nonBreakoutsChecker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, floatHitCount);
-    withBreakoutHits = withBreakoutsChecker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, breakoutFloatHitCount);
+    nonBreakoutHits = nonBreakoutsChecker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, doubleHitCount);
+    withBreakoutHits = withBreakoutsChecker->findHits(ZETA5, M_PI, 5, NULL, loopRanges, breakoutDoubleHitCount);
 
-	// confirm using breakouts produces the exact same number of float hits
-	ASSERT_EQ(floatHitCount, breakoutFloatHitCount);
+	// confirm using breakouts produces the exact same number of double hits
+	ASSERT_EQ(doubleHitCount, breakoutDoubleHitCount);
 
-	// confirm using breakouts produces the exact same number of hits
+	// confirm using breakouts produces the exact same number of float128 hits
 	ASSERT_EQ(nonBreakoutHits->size(), withBreakoutHits->size());
+	ASSERT_LE(static_cast<long>(nonBreakoutHits->size()), doubleHitCount);
 
-	printf("Both CPU checkers had %ld float hits\n", floatHitCount);
-    printf("Both CPU checkers had %lu double hits\n", nonBreakoutHits->size());
+	printf("Both CPU checkers had %ld double hits and %lu float128 hits\n",
+		doubleHitCount, nonBreakoutHits->size());
 
 }

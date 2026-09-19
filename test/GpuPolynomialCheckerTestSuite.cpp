@@ -7,7 +7,7 @@
 TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmTest) {
 	GTEST_SKIP() << "Skipping this test since this approach is out-of-date compared to my newer work.";
 	PolynomialCheckerInterface *checker = new GpuQuinticLastChecker();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		USE_DEFAULT, USE_DEFAULT,
@@ -18,7 +18,7 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
 		0, 0 // skip this loop effectively
 	};
 
-    hits = checker->findHits(ZETA5, M_PI, 5, getLookupTableFloat(), loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA5, M_PI, 5, getLookupTableFloat(), loopRanges, doubleHitCount);
 
     // manual analysis indicates there should be at least 19 hits within .000005 range...
 	ASSERT_LE(19, hits->size());
@@ -62,7 +62,7 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticLastOnlyQuinticQuarticResultsConfirmT
  */
 TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConfirmTest) {
 	PolynomialCheckerInterface *checker = new GpuQuinticFirstChecker();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
 		-5, 5,
@@ -73,10 +73,10 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConf
 		USE_DEFAULT, USE_DEFAULT
 	};
 
-    hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA5, -0.2636600441662106, 5, getLookupTableFloat(), loopRanges, doubleHitCount);
 
     // various setups have netted 721 results...
-	// TODO: 12/18/25 - This test is failing because we're experimenting with not returning floatHitCounts for speedup. Need to figure out a way to test still
+	// TODO: 12/18/25 - This test is failing because we're experimenting with not returning doubleHitCounts for speedup. Need to figure out a way to test still
 	// ASSERT_LE(720, hits->size());
 
     // ...but some have had as many as 727. If there are too many hits something is wrong
@@ -112,25 +112,26 @@ TEST(GpuPolynomialCheckerTestSuite, QuinticFirstZeroAndOneHighDegreesResultsConf
 TEST(GpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {
     //GTEST_SKIP() << "Probably won't unskip this until qd work is added.";
     PolynomialCheckerInterface *checker = new GpuQuinticFirstCheckerPositiveOnlyTopFive();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
         0, 1,
-        4900, 5000, // 4912 corresponds to the coeff 1/90 which should hit
+        4'900, 5'700, // 4912 corresponds to the coeff 1/90 which should hit directly
         0, 1,
         USE_DEFAULT, USE_DEFAULT,
         USE_DEFAULT, USE_DEFAULT,
         USE_DEFAULT, USE_DEFAULT
     };
 
-    hits = checker->findHits(ZETA4, M_PI, 5, getLookupTableFloat(), loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA4, M_PI, 5, getLookupTableFloat(), loopRanges, doubleHitCount);
 
+	ASSERT_EQ(3, doubleHitCount);
     ASSERT_EQ(1, hits->size());
 
     bool hitFound = false;
     int expectedHit[] = {0, 4912, 0, 0, 0, 0}; // pi^4 / 90 = zeta(4)
     for (int* hit : *hits) {
-        if (0 == std::memcmp(hit, expectedHit, sizeof(expectedHit))) {
+		if (0 == std::memcmp(hit, expectedHit, sizeof(expectedHit))) {
             hitFound = true;
             break;
         }
@@ -143,7 +144,7 @@ TEST(GpuPolynomialCheckerTestSuite, Zeta4WithPiTest) {
 
 TEST(GpuPolynomialCheckerTestSuite, PositiveOnlyZeroAndOneHighDegreesResultsConfirmTest) {
     PolynomialCheckerInterface *checker = new GpuQuinticFirstCheckerPositiveOnly();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
         -5, 5,
@@ -154,7 +155,7 @@ TEST(GpuPolynomialCheckerTestSuite, PositiveOnlyZeroAndOneHighDegreesResultsConf
         USE_DEFAULT, USE_DEFAULT
     };
 
-    hits = checker->findHits(ZETA5, /*M_PI*/ -0.2636600441662106, 5, getLookupTableFloat(), loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA5, /*M_PI*/ -0.2636600441662106, 5, getLookupTableFloat(), loopRanges, doubleHitCount);
 
     // keep this structure aligned with QuinticFirstZeroAndOneHighDegreesResultsConfirmTest
     ASSERT_EQ(11, hits->size());
@@ -162,7 +163,7 @@ TEST(GpuPolynomialCheckerTestSuite, PositiveOnlyZeroAndOneHighDegreesResultsConf
 
 TEST(GpuPolynomialCheckerTestSuite, PositiveOnlyTopFourZeroAndOneHighDegreesResultsConfirmTest) {
     PolynomialCheckerInterface *checker = new GpuQuinticFirstCheckerPositiveOnlyTopFour();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
         -5, 5,
@@ -173,14 +174,14 @@ TEST(GpuPolynomialCheckerTestSuite, PositiveOnlyTopFourZeroAndOneHighDegreesResu
         USE_DEFAULT, USE_DEFAULT
     };
 
-    hits = checker->findHits(ZETA5, /*M_PI*/ -0.2636600441662106, 5, getLookupTableFloat(), loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA5, /*M_PI*/ -0.2636600441662106, 5, getLookupTableFloat(), loopRanges, doubleHitCount);
 
     ASSERT_EQ(11, hits->size());
 }
 
 TEST(GpuPolynomialCheckerTestSuite, PositiveOnlyTopFiveZeroAndOneHighDegreesResultsConfirmTest) {
     PolynomialCheckerInterface *checker = new GpuQuinticFirstCheckerPositiveOnlyTopFive();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
         -5, 5,
@@ -191,14 +192,14 @@ TEST(GpuPolynomialCheckerTestSuite, PositiveOnlyTopFiveZeroAndOneHighDegreesResu
         USE_DEFAULT, USE_DEFAULT
     };
 
-    hits = checker->findHits(ZETA5, /*M_PI*/ -0.2636600441662106, 5, getLookupTableFloat(), loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA5, /*M_PI*/ -0.2636600441662106, 5, getLookupTableFloat(), loopRanges, doubleHitCount);
 
     ASSERT_EQ(11, hits->size());
 }
 
 TEST(GpuPolynomialCheckerTestSuite, PositiveOnlyTopSixZeroAndOneHighDegreesResultsConfirmTest) {
     PolynomialCheckerInterface *checker = new GpuQuinticFirstCheckerPositiveOnlyTopSix();
-    long floatHitCount = 0;
+    long doubleHitCount = 0;
     std::vector<int*> *hits;
     std::vector<int> *loopRanges = new std::vector<int>{
         -5, 5,
@@ -209,18 +210,18 @@ TEST(GpuPolynomialCheckerTestSuite, PositiveOnlyTopSixZeroAndOneHighDegreesResul
         USE_DEFAULT, USE_DEFAULT
     };
 
-    hits = checker->findHits(ZETA5, /*M_PI*/ -0.2636600441662106, 5, getLookupTableFloat(), loopRanges, floatHitCount);
+    hits = checker->findHits(ZETA5, /*M_PI*/ -0.2636600441662106, 5, getLookupTableFloat(), loopRanges, doubleHitCount);
 
     ASSERT_EQ(11, hits->size());
 }
 
 // TEST(GpuPolynomialCheckerTestSuite, GpuNoLookup) {
 //     PolynomialCheckerInterface *checker = new GpuNoLookupTableChecker();
-//     long floatHitCount = 0;
+//     long doubleHitCount = 0;
 //     std::vector<int*> *hits;
 //     std::vector<int> *loopRanges = new std::vector<int>{-1,6,-1,6,-1,6,-1,6,-1,-1,-1,6};
 
-//     hits = checker->findHits(ZETA4, M_PI, 5, LUT.data(), loopRanges, floatHitCount);
+//     hits = checker->findHits(ZETA4, M_PI, 5, LUT.data(), loopRanges, doubleHitCount);
 
 // // this does get the right hit when v-loop is on v=9829 which corresponds to 1/90. v5 ends up being 1.08232343 while z4 = 1.082323223
 // 	ASSERT_EQ(28, hits->size());

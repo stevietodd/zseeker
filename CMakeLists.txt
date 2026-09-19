@@ -76,6 +76,9 @@ add_executable(
 add_executable(
   zseeker2
   main.cpp
+  CubicRootSliceWorker.cpp
+  CubicRootSliceWorker.hpp
+  sliceTiling.hpp
   hitRefinement.cpp
   PolynomialCheckerInterface.hpp
   CpuPolynomialChecker.hpp
@@ -156,6 +159,18 @@ target_link_libraries(
 )
 
 add_executable(
+  HitRefinementTestSuite
+  test/HitRefinementTestSuite.cpp
+  hitRefinement.cpp
+  lookupTableAccessor.cpp
+)
+target_link_libraries(
+  HitRefinementTestSuite
+  GTest::gtest_main
+  quadmath
+)
+
+add_executable(
   FindConstantsThatMakeZ3
   FindConstantsThatMakeZ3.cpp
 )
@@ -168,6 +183,7 @@ endforeach()
 add_executable(
   CpuPolynomialCheckerTestSuite
   test/CpuPolynomialCheckerTestSuite.cpp
+  hitRefinement.cpp
   CpuQuinticLastChecker.cpp
   CpuQuinticFirstChecker.cpp
   CpuQuinticFirstWithBreakoutsChecker.cpp
@@ -176,9 +192,21 @@ add_executable(
 target_link_libraries(
   CpuPolynomialCheckerTestSuite
   GTest::gtest_main
+  quadmath
+)
+
+add_executable(
+  CubicRootSliceWorkerTestSuite
+  test/CubicRootSliceWorkerTestSuite.cpp
+)
+target_link_libraries(
+  CubicRootSliceWorkerTestSuite
+  GTest::gtest_main
 )
 
 gtest_discover_tests(LookupTableTestSuite)
+gtest_discover_tests(HitRefinementTestSuite)
 gtest_discover_tests(PrecisionTestSuite)
 gtest_discover_tests(ArithmeticTestSuite)
 gtest_discover_tests(CpuPolynomialCheckerTestSuite)
+gtest_discover_tests(CubicRootSliceWorkerTestSuite)

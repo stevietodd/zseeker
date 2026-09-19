@@ -196,7 +196,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
 )
 {
     // Updated loop boundaries to go from negative to positive ranges instead of starting from 6 (except quint starts at 0 for this positive-only variant)
@@ -341,7 +341,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
     if (err != cudaSuccess) {
         cerr << "CUDA device initialization error: " << cudaGetErrorString(err) << " (code: " << err << ")" << endl;
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -351,7 +351,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
     if (err != cudaSuccess) {
         cerr << "CUDA get device properties error: " << cudaGetErrorString(err) << " (code: " << err << ")" << endl;
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -366,7 +366,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cerr << "CUDA malloc error (d_hitCount): " << cudaGetErrorString(err) << " (code: " << err << ")" << endl;
         cerr << "Device: " << prop.name << ", Compute Capability: " << prop.major << "." << prop.minor << endl;
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -376,7 +376,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cerr << "Device: " << prop.name << ", Compute Capability: " << prop.major << "." << prop.minor << endl;
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -387,7 +387,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -401,7 +401,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -415,7 +415,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -428,7 +428,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -448,7 +448,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -462,7 +462,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -476,7 +476,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -490,7 +490,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -504,7 +504,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -540,7 +540,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -557,7 +557,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -579,7 +579,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -593,7 +593,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -608,7 +608,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
         cudaFree(d_doubleHitCount);
         cudaFree(d_hitCount);
         delete[] out;
-        floatHitCount = 0;
+        doubleHitCount = 0;
         return results;
     }
 
@@ -630,8 +630,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnly::findHits(
 
     delete[] out;
 
-    // floatHitCount tracks all float matches, results only contains double-verified hits
-    floatHitCount = h_hitCount;
+    doubleHitCount = h_doubleHitCount;
     refineHitsWithFloat128Precision(results, needle, theConst);
     return results;
 }

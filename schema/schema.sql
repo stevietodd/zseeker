@@ -63,12 +63,12 @@ CREATE TABLE `roots_checked` (
   `worker_id` tinyint unsigned DEFAULT NULL,
   `is_started` tinyint(1) NOT NULL DEFAULT '0',
   `is_finished` tinyint(1) NOT NULL DEFAULT '0',
-  `float_hit_count1` int DEFAULT NULL,
   `double_hit_count1` int DEFAULT NULL,
-  `float_hit_count2` int DEFAULT NULL,
+  `float128_hit_count1` int DEFAULT NULL,
   `double_hit_count2` int DEFAULT NULL,
-  `float_hit_count3` int DEFAULT NULL,
+  `float128_hit_count2` int DEFAULT NULL,
   `double_hit_count3` int DEFAULT NULL,
+  `float128_hit_count3` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `isStarted` (`is_started`,`is_finished`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1711231896 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -76,7 +76,9 @@ CREATE TABLE `roots_checked` (
 
 --
 -- Fine-grained work units: one row per (cubic root, zroot slot, quint x quart rectangle).
--- Use with ZSEEKER_USE_ROOT_SLICES=1 in main; see populate_slices_for_cubic_root procedure.
+-- zseeker2 always uses this queue and always tiles each zroot slot as 1 quintic by 100
+-- quartics (the last quart strip of each quint may be shorter). populate_slices_for_cubic_root
+-- can still tile the full LUT at a fixed chunk size for manual use.
 --
 
 DROP TABLE IF EXISTS `roots_checked_slice`;
@@ -93,8 +95,8 @@ CREATE TABLE `roots_checked_slice` (
   `worker_id` tinyint unsigned DEFAULT NULL,
   `is_started` tinyint(1) NOT NULL DEFAULT '0',
   `is_finished` tinyint(1) NOT NULL DEFAULT '0',
-  `float_hit_count` bigint DEFAULT NULL,
   `double_hit_count` bigint DEFAULT NULL,
+  `float128_hit_count` bigint DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_slice_tile` (`cubic_root_id`,`zroot_slot`,`quint_lo`,`quint_hi`,`quart_lo`,`quart_hi`),
   KEY `idx_slice_pending` (`is_started`,`is_finished`,`id`),

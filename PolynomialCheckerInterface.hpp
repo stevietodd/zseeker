@@ -12,13 +12,15 @@ class PolynomialCheckerInterface
 
         // solve for needle = coeff0 + coeff1*theConst + coeff2*theConst^2 + ... (a polynomial with the given degree)
         // note that the loopRanges define indexes of coeffArray to search through
+        // doubleHitCount is the number of double-verified hits (before float128 refinement).
+        // After return, hits->size() is the number of hits that also pass float128 refinement.
         virtual std::vector<int*>* findHits(
             const double needle,
             const double theConst,
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
         ) = 0;
 
         void printHit(const double* coeffArray, const int i5, const int i4, const int i3, const int i2, const int i1, const int i0)

@@ -1,4 +1,5 @@
 #include "CpuPolynomialChecker.hpp"
+#include "hitRefinement.hpp"
 #include "lookupTableAccessor.hpp"
 #include "math.hpp"
 #include <ctime> // can remove if getCurrentTimeString is removed
@@ -16,7 +17,7 @@ std::vector<int*>* CpuQuinticLastChecker::findHits(
             const int degree,
             const float *coeffArray,
             const std::vector<int> *loopRanges,
-            long& floatHitCount
+            long& doubleHitCount
 )
 {
     // make sure to remove these if I eventually stop using cout
@@ -109,11 +110,6 @@ std::vector<int*>* CpuQuinticLastChecker::findHits(
                             // mimic how the Gpu checker does it
 
                             if (FLOAT_BASICALLY_EQUAL(v5, needlef, floatTol)) {
-                                floatHitCount++;
-								//printf("floatHitCount=%ld\n", floatHitCount);
-								//printf("double first two here is %10.10lf and %10.10lf\n", doubleLUT[u], doubleLUT[v]);
-                                //printHit(LUT.data(), u,v,w,x,y,z);
-
 								// since our float was in range, calculate the double value and check for a "real hit"
 								doubleValue = ((u < 0) ? -doubleLUT[-u] : doubleLUT[u]) * theConst5
 									+ ((v < 0) ? -doubleLUT[-v] : doubleLUT[v]) * theConst4
@@ -135,7 +131,7 @@ std::vector<int*>* CpuQuinticLastChecker::findHits(
 		}
 	}
 
-    // Leaving this printf in to help prevent floatHitCount from being optimized out
-	//printf("CpuQuinticLastChecker: floatHitCount ending as %ld\n", floatHitCount);
+	doubleHitCount = static_cast<long>(hits->size());
+	refineHitsWithFloat128Precision(hits, needle, theConst);
     return hits;
 }
