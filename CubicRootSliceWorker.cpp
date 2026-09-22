@@ -62,6 +62,7 @@ struct CubicRootSliceWorker::Impl {
     bool finalizeRootsCheckedIfAllSlicesDone(int cubicRootId);
     SliceSearchResult executeSliceSearch(const SliceWorkItem& s);
     bool persistSliceResult(const SliceWorkItem& s, const SliceSearchResult& result);
+    bool insertFloat128Hits(int cubicRootId, int zrootSlot, const std::vector<int*>* hits);
     void processCubicRoot(int cubicRootId);
     void runOneSlice(const SliceWorkItem& s);
 };
@@ -88,10 +89,10 @@ bool CubicRootSliceWorker::Impl::resolveWorkerId() {
 bool CubicRootSliceWorker::Impl::runOneCubicRoot() {
     std::optional<int> rootId = peekPendingSliceRoot();
     if (!rootId.has_value()) {
-        rootId = peekStartedRootWithNoSlices();
+        rootId = claimNewCubicRoot();
     }
     if (!rootId.has_value()) {
-        rootId = claimNewCubicRoot();
+        rootId = peekStartedRootWithNoSlices();
     }
     if (!rootId.has_value()) {
         rootId = enqueueRemainingForAnyUnfinishedRoot();
@@ -516,8 +517,35 @@ CubicRootSliceWorker::Impl::SliceSearchResult CubicRootSliceWorker::Impl::execut
         std::cout << "Hit = " << hit[0] << "," << hit[1] << "," << hit[2] << "," << hit[3] << "," << hit[4] << ","
                   << hit[5] << "," << std::endl;
     }
+    if (!insertFloat128Hits(s.cubicRootId, s.zrootSlot, hits)) {
+        std::cerr << "Error: failed to persist float128 hit coefficients for slice id " << s.sliceId << std::endl;
+    }
     freeHitsVector(hits);
     return result;
+}
+
+bool CubicRootSliceWorker::Impl::insertFloat128Hits(int cubicRootId, int zrootSlot, const std::vector<int*>* hits) {
+    if (!hits || hits->empty()) {
+        return true;
+    }
+    std::string q = "INSERT INTO float128_hits (cubic_root_id, zroot_slot, "
+        "lut_index_5, lut_index_4, lut_index_3, lut_index_2, lut_index_1, lut_index_0) VALUES ";
+    for (size_t i = 0; i < hits->size(); ++i) {
+        const int* hit = hits->at(i);
+        if (i > 0) {
+            q += ",";
+        }
+        q += "(" + std::to_string(cubicRootId) + "," + std::to_string(zrootSlot) + ","
+            + std::to_string(hit[0]) + "," + std::to_string(hit[1]) + "," + std::to_string(hit[2]) + ","
+            + std::to_string(hit[3]) + "," + std::to_string(hit[4]) + "," + std::to_string(hit[5]) + ")";
+    }
+    if (mysql_query(mysql_, q.c_str())) {
+        std::cerr << "Error: float128_hits INSERT failed: " << mysql_error(mysql_) << std::endl;
+        return false;
+    }
+    std::cout << "Stored " << hits->size() << " float128 hit(s) for cubic_root_id " << cubicRootId
+              << " zroot_slot=" << zrootSlot << std::endl;
+    return true;
 }
 
 bool CubicRootSliceWorker::Impl::persistSliceResult(const SliceWorkItem& s, const SliceSearchResult& result) {

@@ -5,7 +5,7 @@
 #include <mysql/mysql.h>
 #include "PolynomialCheckerInterface.hpp"
 
-// Claims one cubic root and drains its zroot slots as 1x100 quint x quart slices.
+// Claims one cubic root and drains its zroot slots as 1x1000 slices.
 class CubicRootSliceWorker
 {
 public:

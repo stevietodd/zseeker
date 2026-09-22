@@ -25,8 +25,8 @@ void expectPartition(const LutBounds& bounds, const std::vector<TileRect>& tiles
         EXPECT_TRUE(tileWithinBounds(tiles[i], bounds))
             << "tile " << i << " q[" << tiles[i].qLo << "," << tiles[i].qHi << "] r["
             << tiles[i].rLo << "," << tiles[i].rHi << "] outside bounds";
-        EXPECT_EQ(tiles[i].qLo, tiles[i].qHi) << "tile " << i << " is not a single quint";
-        EXPECT_LE(tiles[i].rHi - tiles[i].rLo + 1, SLICE_QUART_CHUNK) << "tile " << i << " is wider than 100 quarts";
+        EXPECT_LE(tiles[i].qHi - tiles[i].qLo + 1, SLICE_QUINT_CHUNK) << "tile " << i << " is taller than the quint chunk";
+        EXPECT_LE(tiles[i].rHi - tiles[i].rLo + 1, SLICE_QUART_CHUNK) << "tile " << i << " is wider than the quart chunk";
         area += tileCells(tiles[i]);
     }
     expectNoOverlaps(tiles);
@@ -69,7 +69,7 @@ bool tilesEqual(const std::vector<TileRect>& a, const std::vector<TileRect>& b) 
     return true;
 }
 
-// One quint's quarts are tiled as adjacent 100-wide strips, last one clamped.
+// Production quarts are tiled in SLICE_QUART_CHUNK strips; leftover strips still abut.
 void expectQuartAxisPartition(const LutBounds& bounds) {
     long long covered = 0;
     int prevHi = bounds.quartMin - 1;
@@ -102,13 +102,20 @@ TEST(CubicRootSliceWorkerTestSuite, PositiveOnlyLutBoundsStartQuintAtZero) {
     EXPECT_LT(boundsCells(b), boundsCells(lutBoundsForChecker(false)));
 }
 
-TEST(CubicRootSliceWorkerTestSuite, FirstTileIsOneQuintByUpToOneHundredQuarts) {
-    const LutBounds b{-5, 20, -10, 250};
+TEST(CubicRootSliceWorkerTestSuite, FirstTileIsQuintByQuartChunkClamped) {
+    const LutBounds b{-5, 2500, -10, 250}; // quart span 261 < 1000, so first tile takes the whole quart axis
     const TileRect t = firstTile(b);
     EXPECT_EQ(b.quintMin, t.qLo);
-    EXPECT_EQ(b.quintMin, t.qHi);
+    EXPECT_EQ(b.quintMin + SLICE_QUINT_CHUNK - 1, t.qHi);
     EXPECT_EQ(b.quartMin, t.rLo);
-    EXPECT_EQ(b.quartMin + SLICE_QUART_CHUNK - 1, t.rHi);
+    EXPECT_EQ(b.quartMax, t.rHi);
+
+    const LutBounds wide{0, 5, 0, 2500};
+    const TileRect firstWide = firstTile(wide);
+    EXPECT_EQ(0, firstWide.qLo);
+    EXPECT_EQ(SLICE_QUINT_CHUNK - 1, firstWide.qHi);
+    EXPECT_EQ(0, firstWide.rLo);
+    EXPECT_EQ(SLICE_QUART_CHUNK - 1, firstWide.rHi);
 
     const LutBounds tiny{0, 0, 3, 8};
     const TileRect clamped = firstTile(tiny);
@@ -118,7 +125,7 @@ TEST(CubicRootSliceWorkerTestSuite, FirstTileIsOneQuintByUpToOneHundredQuarts) {
     EXPECT_EQ(8, clamped.rHi);
 }
 
-TEST(CubicRootSliceWorkerTestSuite, OneByOneHundredOnSmallGridCoversEveryCell) {
+TEST(CubicRootSliceWorkerTestSuite, OneByQuartChunkOnSmallGridCoversEveryCell) {
     const LutBounds b{-2, 3, -40, 161};
     const std::vector<TileRect> tiles = enumerateAllTiles(b, SLICE_ENQUEUE_BATCH);
     expectEveryCellCoveredExactlyOnce(b, tiles);
@@ -127,12 +134,14 @@ TEST(CubicRootSliceWorkerTestSuite, OneByOneHundredOnSmallGridCoversEveryCell) {
 }
 
 TEST(CubicRootSliceWorkerTestSuite, RaggedLastQuartStripStillCovers) {
-    const LutBounds b{0, 4, 0, 249}; // 250 quarts: two full 100s and a leftover 50
+    const LutBounds b{0, 2, 0, 2499}; // 3 quints, 2500 quarts: two 1000s and a leftover 500
     const std::vector<TileRect> tiles = enumerateAllTiles(b, 1);
     expectEveryCellCoveredExactlyOnce(b, tiles);
-    EXPECT_EQ(5 * 3u, tiles.size());
-    EXPECT_EQ(200, lastTile(b).rLo);
-    EXPECT_EQ(249, lastTile(b).rHi);
+    EXPECT_EQ(9u, tiles.size());
+    EXPECT_EQ(2, lastTile(b).qLo);
+    EXPECT_EQ(2, lastTile(b).qHi);
+    EXPECT_EQ(2000, lastTile(b).rLo);
+    EXPECT_EQ(2499, lastTile(b).rHi);
 }
 
 TEST(CubicRootSliceWorkerTestSuite, DrainBatchesMatchSingleStepEnumeration) {
@@ -146,7 +155,7 @@ TEST(CubicRootSliceWorkerTestSuite, DrainBatchesMatchSingleStepEnumeration) {
 }
 
 TEST(CubicRootSliceWorkerTestSuite, NothingRemainsAfterLastTile) {
-    const LutBounds b{0, 9, 0, 249};
+    const LutBounds b{0, 1999, 0, 249};
     const std::vector<TileRect> tiles = enumerateAllTiles(b, 8);
     ASSERT_GE(tiles.size(), 2u);
     std::vector<TileRect> extra;
@@ -163,27 +172,30 @@ TEST(CubicRootSliceWorkerTestSuite, EmptySlotStartsAtFirstTile) {
     EXPECT_TRUE(sameTile(firstBatch[0], firstTile(b)));
 }
 
-TEST(CubicRootSliceWorkerTestSuite, NextTileAbutsPrevious) {
-    const LutBounds b{-608383, -608370, -152231, -152000};
+TEST(CubicRootSliceWorkerTestSuite, NextTileAdvancesAlongTheQuartAxis) {
+    const LutBounds b{-608383, -606000, SLICE_QUART_MIN, SLICE_QUART_MAX};
     const TileRect first = firstTile(b);
     TileRect second{};
     ASSERT_TRUE(nextTileAfter(b, first, second));
     EXPECT_EQ(first.qLo, second.qLo);
+    EXPECT_EQ(first.qHi, second.qHi);
     EXPECT_EQ(first.rHi + 1, second.rLo);
+    EXPECT_EQ(std::min(first.rHi + SLICE_QUART_CHUNK, b.quartMax), second.rHi);
     EXPECT_FALSE(tilesOverlap(first, second));
 }
 
-TEST(CubicRootSliceWorkerTestSuite, CrossingAQuintStartsANewQuartStrip) {
-    const LutBounds b{0, 2, 0, 99}; // exactly one 1x100 tile per quint
+TEST(CubicRootSliceWorkerTestSuite, CrossingTheQuartAxisStartsTheNextQuint) {
+    const LutBounds b{0, 1999, 0, 99}; // quart span 100 < 1000, so the next tile is the next quint
     const TileRect first = firstTile(b);
     EXPECT_EQ(0, first.qLo);
+    EXPECT_EQ(SLICE_QUINT_CHUNK - 1, first.qHi);
     EXPECT_EQ(0, first.rLo);
     EXPECT_EQ(99, first.rHi);
 
     TileRect second{};
     ASSERT_TRUE(nextTileAfter(b, first, second));
-    EXPECT_EQ(1, second.qLo);
-    EXPECT_EQ(1, second.qHi);
+    EXPECT_EQ(SLICE_QUINT_CHUNK, second.qLo);
+    EXPECT_EQ(std::min(2 * SLICE_QUINT_CHUNK - 1, 1999), second.qHi);
     EXPECT_EQ(0, second.rLo);
     EXPECT_EQ(99, second.rHi);
 }
@@ -197,20 +209,20 @@ TEST(CubicRootSliceWorkerTestSuite, ProductionFirstAndLastTilesMeetTheLutEdge) {
     const LutBounds b = lutBoundsForChecker(false);
     const TileRect first = firstTile(b);
     EXPECT_EQ(b.quintMin, first.qLo);
-    EXPECT_EQ(b.quintMin, first.qHi);
+    EXPECT_EQ(b.quintMin + SLICE_QUINT_CHUNK - 1, first.qHi);
     EXPECT_EQ(b.quartMin, first.rLo);
-    EXPECT_EQ(b.quartMin + SLICE_QUART_CHUNK - 1, first.rHi);
+    EXPECT_EQ(std::min(b.quartMin + SLICE_QUART_CHUNK - 1, b.quartMax), first.rHi);
 
     TileRect second{};
     ASSERT_TRUE(nextTileAfter(b, first, second));
-    EXPECT_EQ(b.quintMin, second.qLo);
+    EXPECT_EQ(first.qLo, second.qLo);
     EXPECT_EQ(first.rHi + 1, second.rLo);
 
     const TileRect last = lastTile(b);
     EXPECT_TRUE(tileWithinBounds(last, b));
     EXPECT_TRUE(tileContainsCell(last, b.quintMax, b.quartMax));
-    EXPECT_EQ(b.quintMax, last.qLo);
     EXPECT_EQ(b.quintMax, last.qHi);
+    EXPECT_EQ(b.quartMax, last.rHi);
 
     std::vector<TileRect> afterLast;
     EXPECT_FALSE(nextTiles(b, last, true, 8, afterLast));
@@ -220,10 +232,10 @@ TEST(CubicRootSliceWorkerTestSuite, ProductionPositiveOnlyDoesNotCoverNegativeQu
     const LutBounds b = lutBoundsForChecker(true);
     const TileRect first = firstTile(b);
     EXPECT_EQ(0, first.qLo);
+    EXPECT_EQ(SLICE_QUINT_CHUNK - 1, first.qHi);
     EXPECT_FALSE(tileContainsCell(first, -1, 0));
 
     const TileRect last = lastTile(b);
-    EXPECT_EQ(SLICE_QUINT_MAX, last.qLo);
     EXPECT_TRUE(tileContainsCell(last, SLICE_QUINT_MAX, SLICE_QUART_MAX));
 }
 

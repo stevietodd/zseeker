@@ -111,8 +111,8 @@ int main(int argc, char *argv[])
                 std::cout << "Using GpuQuinticFirst" << std::endl;
                 checker = new GpuQuinticFirstChecker();
             } else if (strcasecmp(argv[1], "gfpo") == 0) {
-                std::cout << "Using GpuQuinticFirstPositiveOnly" << std::endl;
-                checker = new GpuQuinticFirstCheckerPositiveOnly();
+                std::cout << "Using GpuQuinticFirstPositiveOnlyTopFive" << std::endl;
+                checker = new GpuQuinticFirstCheckerPositiveOnlyTopFive();
             } else if (strcasecmp(argv[1], "cl") == 0) {
                 std::cout << "Using CpuQuinticLast" << std::endl;
                 checker = new CpuQuinticLastChecker();

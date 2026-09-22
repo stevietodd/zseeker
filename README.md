@@ -11,7 +11,7 @@ Coefficients come from a lookup table of small rationals divided by each other a
 
 `findHits` reports the double-verified count in `doubleHitCount`. After return, `hits->size()` is the float128-refined count. Those two numbers are stored as `double_hit_count*` / `float128_hit_count*` on both the slice row and the parent `roots_checked` row.
 
-Work is always queued as 1×100 quint×quart rectangles in `roots_checked_slice` (the last quart strip of each quint may be shorter). One `zseeker2` run claims a cubic root and keeps draining its slices; the same worker will usually finish that root, though another host may pick up any unstarted tiles.
+Work is always queued as 1×1000 quint×quart rectangles in `roots_checked_slice` (the last strips of each slot may be shorter). One `zseeker2` run claims a cubic root and keeps draining its slices; the same worker will usually finish that root, though another host may pick up any unstarted tiles.
 
 ## Build
 
@@ -39,7 +39,7 @@ Checker argument (default is CPU quintic-first with breakouts):
 | Arg | Checker |
 | --- | --- |
 | `gf` | GPU quintic-first |
-| `gfpo` | GPU quintic-first, positive-only |
+| `gfpo` | GPU quintic-first, positive-only, top five |
 | `gl` | GPU quintic-last |
 | `cf` | CPU quintic-first |
 | `cfwb` | CPU quintic-first with breakouts |

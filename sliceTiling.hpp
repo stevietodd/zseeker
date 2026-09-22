@@ -56,7 +56,7 @@ inline bool tileContainsCell(const TileRect& t, int q, int r) {
     return q >= t.qLo && q <= t.qHi && r >= t.rLo && r <= t.rHi;
 }
 
-// Origin tile: 1 quint x up to 100 quarts, clamped to bounds.
+// Origin tile: up to SLICE_QUINT_CHUNK quints x SLICE_QUART_CHUNK quarts, clamped to bounds.
 inline TileRect firstTile(const LutBounds& bounds) {
     TileRect t;
     t.qLo = bounds.quintMin;
@@ -66,7 +66,7 @@ inline TileRect firstTile(const LutBounds& bounds) {
     return t;
 }
 
-// Walk quart-first within a quint, then the next quint at quartMin.
+// Walk remaining quarts in this quint strip, then the next quint strip at quartMin.
 inline bool nextTileAfter(const LutBounds& bounds, const TileRect& last, TileRect& out) {
     const int nextR = last.rHi + 1;
     if (nextR <= bounds.quartMax) {
@@ -127,12 +127,14 @@ inline std::vector<TileRect> enumerateAllTiles(const LutBounds& bounds, int batc
     return all;
 }
 
-// Last 1x100-or-shorter tile in the LUT (quintMax, final quart strip).
+// Last tile: final quint strip (possibly shorter than SLICE_QUINT_CHUNK) x final quart strip.
 inline TileRect lastTile(const LutBounds& bounds) {
     const int quartSpan = bounds.quartMax - bounds.quartMin + 1;
+    const int quintSpan = bounds.quintMax - bounds.quintMin + 1;
     const int nQuartTiles = (quartSpan + SLICE_QUART_CHUNK - 1) / SLICE_QUART_CHUNK;
+    const int nQuintTiles = (quintSpan + SLICE_QUINT_CHUNK - 1) / SLICE_QUINT_CHUNK;
     TileRect t;
-    t.qLo = bounds.quintMax;
+    t.qLo = bounds.quintMin + (nQuintTiles - 1) * SLICE_QUINT_CHUNK;
     t.qHi = bounds.quintMax;
     t.rLo = bounds.quartMin + (nQuartTiles - 1) * SLICE_QUART_CHUNK;
     t.rHi = bounds.quartMax;
