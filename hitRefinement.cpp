@@ -103,3 +103,14 @@ std::size_t refineHitsWithFloat128Precision(
               << " (tol=" << (double)tol << ")" << std::endl;
     return hits->size();
 }
+
+void remapHitsForNegativeZroot(std::vector<int*>* hits, double zroot) {
+    if (!hits || zroot >= 0.0) {
+        return;
+    }
+    for (int* h : *hits) {
+        h[0] = -h[0];
+        h[2] = -h[2];
+        h[4] = -h[4];
+    }
+}

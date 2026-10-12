@@ -15,9 +15,16 @@
 // Removes hits that fail |p(theConst) - needle| < tol.
 // Frees coefficient arrays for dropped hits. No-op if hits is null or empty.
 // Returns the number of hits remaining (same as hits->size() after).
+// Call this at the search constant (|zroot|); remap odd-degree signs afterward
+// if the original zroot was negative.
 std::size_t refineHitsWithFloat128Precision(
     std::vector<int*>* hits,
     double needle,
     double theConst);
+
+// If zroot < 0, the search and float128 pass ran at |zroot|. Flip odd-degree
+// LUT indices so each stored hit evaluates at the original zroot:
+// p(-c; a) = p(c; a') with a_odd = -a'_odd.
+void remapHitsForNegativeZroot(std::vector<int*>* hits, double zroot);
 
 #endif

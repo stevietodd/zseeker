@@ -31,6 +31,7 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
             long& doubleHitCount
 )
 {
+    const double searchConst = std::fabs(theConst);
     // make sure to remove these if I eventually stop using cout
     typedef std::numeric_limits< float > ldbl;
 	std::cout.precision(ldbl::max_digits10);
@@ -59,12 +60,12 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
 
     float maxValue = 0, floatTol = FLOAT_POS_ERROR_DEFAULT;
 	double doubleValue = 0, doubleTol = DOUBLE_POS_ERROR_DEFAULT;
-	const double theConst2 = powl(theConst, (double)2);
-	const double theConst3 = powl(theConst, (double)3);
-	const double theConst4 = powl(theConst, (double)4);
-	const double theConst5 = powl(theConst, (double)5);
+	const double theConst2 = powl(searchConst, (double)2);
+	const double theConst3 = powl(searchConst, (double)3);
+	const double theConst4 = powl(searchConst, (double)4);
+	const double theConst5 = powl(searchConst, (double)5);
 	const float needlef = (float)needle;
-	const float theConstf = (float)theConst;
+	const float theConstf = (float)searchConst;
 	const float theConst2f = (float)theConst2;
 	const float theConst3f = (float)theConst3;
 	const float theConst4f = (float)theConst4;
@@ -173,7 +174,7 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
 									+ ((v < 0) ? -doubleLUT[-v] : doubleLUT[v]) * theConst4
 									+ ((w < 0) ? -doubleLUT[-w] : doubleLUT[w]) * theConst3
 									+ ((x < 0) ? -doubleLUT[-x] : doubleLUT[x]) * theConst2
-									+ ((y < 0) ? -doubleLUT[-y] : doubleLUT[y]) * (double)theConst
+									+ ((y < 0) ? -doubleLUT[-y] : doubleLUT[y]) * (double)searchConst
 									+ ((z < 0) ? -doubleLUT[-z] : doubleLUT[z]);
 								if (DOUBLE_BASICALLY_EQUAL(doubleValue, needle, doubleTol)) {
 									// TODO: These are the real hits!
@@ -190,6 +191,7 @@ std::vector<int*>* CpuQuinticFirstWithBreakoutsChecker::findHits(
     }
 
 	doubleHitCount = static_cast<long>(hits->size());
-	refineHitsWithFloat128Precision(hits, needle, theConst);
+	refineHitsWithFloat128Precision(hits, needle, searchConst);
+	remapHitsForNegativeZroot(hits, theConst);
     return hits;
 }

@@ -64,3 +64,26 @@ TEST_F(HitRefinementTestSuite, NegativeLutIndexEvaluatesNegatedCoeff) {
 
 	freeHits(&hits);
 }
+
+TEST_F(HitRefinementTestSuite, RemapFlipsOddDegreesOnlyWhenZrootIsNegative) {
+	std::vector<int*> hits;
+	hits.push_back(makeHit(5, 4, 3, 2, 1, 0));
+
+	remapHitsForNegativeZroot(&hits, 0.5);
+	EXPECT_EQ(5, hits[0][0]);
+	EXPECT_EQ(4, hits[0][1]);
+	EXPECT_EQ(3, hits[0][2]);
+	EXPECT_EQ(2, hits[0][3]);
+	EXPECT_EQ(1, hits[0][4]);
+	EXPECT_EQ(0, hits[0][5]);
+
+	remapHitsForNegativeZroot(&hits, -0.5);
+	EXPECT_EQ(-5, hits[0][0]);
+	EXPECT_EQ(4, hits[0][1]);
+	EXPECT_EQ(-3, hits[0][2]);
+	EXPECT_EQ(2, hits[0][3]);
+	EXPECT_EQ(-1, hits[0][4]);
+	EXPECT_EQ(0, hits[0][5]);
+
+	freeHits(&hits);
+}

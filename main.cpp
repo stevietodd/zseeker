@@ -6,11 +6,16 @@
 #include <cmath>
 #include <limits>
 #include <vector>
+#include <array>
+#include <chrono>
+#include <set>
+#include <tuple>
 #include "CpuPolynomialChecker.hpp"
 #include "GpuPolynomialChecker.hpp"
 #include "CubicRootSliceWorker.hpp"
 #include "math.hpp"
 #include "lookupTableAccessor.hpp"
+#include "sliceTiling.hpp"
 
 // MySQL connection configuration
 struct MySQLConfig {
@@ -227,6 +232,81 @@ int main(int argc, char *argv[])
                     result = hits->at(i);
                     checker->printHit(getLookupTableDouble(), result[0], result[1], result[2], result[3], result[4], result[5]);
                 }
+                delete checker;
+                return 0;
+            } else if (strcasecmp(argv[1], "megaman6") == 0) {
+                // Time root 145 zroot1 as-is (negative) vs +c on quint=0, quart=0..10.
+                // Hit tuples at -c map to +c by flipping odd-degree signs.
+                std::cout << "Using TopFive ±c timing hack (145 zroot1, quint=0, quart=0..10)" << std::endl;
+                checker = new GpuQuinticFirstCheckerPositiveOnlyTopFive();
+                const double cNeg = -0.7535813351441343; // z3_cubic_roots.id=145 zroot1
+                const double cPos = -cNeg;
+                std::vector<int> loopRanges = makeQuinticFirstSliceLoopRanges(0, 0, 0, 10);
+
+                auto canonical = [](int i5, int i4, int i3, int i2, int i1, int i0) {
+                    if (i5 < 0) {
+                        i5 = -i5; i4 = -i4; i3 = -i3; i2 = -i2; i1 = -i1; i0 = -i0;
+                    }
+                    return std::array<int, 6>{i5, i4, i3, i2, i1, i0};
+                };
+                auto oddFlipCanonical = [&](const int* h) {
+                    return canonical(-h[0], h[1], -h[2], h[3], -h[4], h[5]);
+                };
+                auto asCanonical = [&](const int* h) {
+                    return canonical(h[0], h[1], h[2], h[3], h[4], h[5]);
+                };
+                auto freeHits = [](std::vector<int*>* h) {
+                    if (!h) {
+                        return;
+                    }
+                    for (int* p : *h) {
+                        delete[] p;
+                    }
+                    delete h;
+                };
+                auto toSet = [&](std::vector<int*>* h, bool flipOdds) {
+                    std::set<std::array<int, 6>> out;
+                    if (!h) {
+                        return out;
+                    }
+                    for (const int* p : *h) {
+                        out.insert(flipOdds ? oddFlipCanonical(p) : asCanonical(p));
+                    }
+                    return out;
+                };
+
+                auto runOnce = [&](double c, const char* label) {
+                    long dbl = 0;
+                    std::cout << "\n=== " << label << " theConst=" << c << " ===" << std::endl;
+                    const auto t0 = std::chrono::steady_clock::now();
+                    std::vector<int*>* h = checker->findHits(ZETA5, c, 5, getLookupTableFloat(), &loopRanges, dbl);
+                    const auto t1 = std::chrono::steady_clock::now();
+                    const double wallSec = std::chrono::duration<double>(t1 - t0).count();
+                    const long f128 = h ? static_cast<long>(h->size()) : 0;
+                    std::cout << label << " wall_sec=" << wallSec
+                              << " doubleHitCount=" << dbl
+                              << " float128Hits=" << f128 << std::endl;
+                    return std::tuple<long, long, double, std::vector<int*>*>{dbl, f128, wallSec, h};
+                };
+
+                auto [dblNeg, f128Neg, wallNeg, hitsNeg] = runOnce(cNeg, "as-is");
+                auto [dblPos, f128Pos, wallPos, hitsPos] = runOnce(cPos, "positive");
+
+                const auto setNeg = toSet(hitsNeg, true);
+                const auto setPos = toSet(hitsPos, false);
+                std::cout << "\n=== comparison ===" << std::endl;
+                std::cout << "doubleHitCount as-is=" << dblNeg << " positive=" << dblPos
+                          << (dblNeg == dblPos ? " MATCH" : " DIFFER") << std::endl;
+                std::cout << "float128Hits as-is=" << f128Neg << " positive=" << f128Pos
+                          << (f128Neg == f128Pos ? " MATCH" : " DIFFER") << std::endl;
+                std::cout << "canonical set size as-is(odd-flip)=" << setNeg.size()
+                          << " positive=" << setPos.size()
+                          << (setNeg == setPos ? " MATCH" : " DIFFER") << std::endl;
+                std::cout << "wall_sec as-is=" << wallNeg << " positive=" << wallPos
+                          << " speedup_positive_over_as_is=" << (wallNeg / wallPos) << std::endl;
+
+                freeHits(hitsNeg);
+                freeHits(hitsPos);
                 delete checker;
                 return 0;
             } else {

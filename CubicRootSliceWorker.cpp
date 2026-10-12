@@ -506,6 +506,9 @@ CubicRootSliceWorker::Impl::SliceSearchResult CubicRootSliceWorker::Impl::execut
 
     const double theConst = s.zrootVal.value();
     std::cout << "theConst = " << theConst << std::endl;
+    if (theConst < 0) {
+        std::cout << "Searching |theConst|; odd-degree hit signs remapped for the negative zroot." << std::endl;
+    }
     std::vector<int> loopRanges = makeQuinticFirstSliceLoopRanges(s.quintLo, s.quintHi, s.quartLo, s.quartHi);
     long doubleHitCount = 0;
     std::vector<int*>* hits = checker_->findHits(ZETA5, theConst, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);

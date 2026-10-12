@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "../sliceTiling.hpp"
+#include "../positiveOnlySkip.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -270,4 +271,34 @@ TEST(CubicRootSliceWorkerTestSuite, DrainLoopCoversEveryLutIndexLikeTheWorker) {
     expectEveryCellCoveredExactlyOnce(b, queued);
     EXPECT_TRUE(tileContainsCell(queued.front(), b.quintMin, b.quartMin));
     EXPECT_TRUE(tileContainsCell(queued.back(), b.quintMax, b.quartMax));
+}
+
+TEST(CubicRootSliceWorkerTestSuite, PositiveOnlySkipWhenQuintZeroAndAllQuartsNegative) {
+    const int ranges[] = {0, 0, -152231, -144232, -6087, 6087, -2203, 2203, -555, 555, -143, 143};
+    EXPECT_TRUE(positiveOnlyKernelHasNoWork(ranges));
+}
+
+TEST(CubicRootSliceWorkerTestSuite, PositiveOnlyDoesNotSkipWhenQuintGoesPastZero) {
+    const int ranges[] = {0, 1, -152231, -144232, -6087, 6087, -2203, 2203, -555, 555, -143, 143};
+    EXPECT_FALSE(positiveOnlyKernelHasNoWork(ranges));
+}
+
+TEST(CubicRootSliceWorkerTestSuite, PositiveOnlyDoesNotSkipWhenQuartReachesZero) {
+    const int ranges[] = {0, 0, -10, 0, -6087, 6087, -2203, 2203, -555, 555, -143, 143};
+    EXPECT_FALSE(positiveOnlyKernelHasNoWork(ranges));
+}
+
+TEST(CubicRootSliceWorkerTestSuite, PositiveOnlySkipWhenQuintAndQuartZeroAndCubicsNegative) {
+    const int ranges[] = {0, 0, 0, 0, -6087, -1, -2203, 2203, -555, 555, -143, 143};
+    EXPECT_TRUE(positiveOnlyKernelHasNoWork(ranges));
+}
+
+TEST(CubicRootSliceWorkerTestSuite, PositiveOnlyDoesNotSkipWhenQuintQuartZeroAndCubicNonNeg) {
+    const int ranges[] = {0, 0, 0, 0, -6087, 0, -2203, 2203, -555, 555, -143, 143};
+    EXPECT_FALSE(positiveOnlyKernelHasNoWork(ranges));
+}
+
+TEST(CubicRootSliceWorkerTestSuite, EmptyInnerLoopRangeIsNoWork) {
+    const int ranges[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 4};
+    EXPECT_TRUE(positiveOnlyKernelHasNoWork(ranges));
 }
