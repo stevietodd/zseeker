@@ -333,25 +333,19 @@ int main(int argc, char *argv[])
     
     std::cout << "Connected to MySQL database successfully." << std::endl;
 
-    CubicRootSliceWorker worker(mysql, checker);
+    MysqlConnectInfo connectInfo{config.host, config.user, config.password, config.database, config.port};
+    CubicRootSliceWorker worker(mysql, std::move(connectInfo), checker);
     if (!worker.resolveWorkerId()) {
-        mysql_close(mysql);
         delete checker;
         return 1;
     }
     if (!worker.runOneCubicRoot()) {
         std::cout << "No cubic-root work to process. Exiting." << std::endl;
-        mysql_close(mysql);
         delete checker;
-        std::cout << "MySQL connection closed." << std::endl;
         return 0;
     }
 
     delete checker;
-    
-    // Clean up MySQL connection
-    mysql_close(mysql);
-    std::cout << "MySQL connection closed." << std::endl;
 
     return 0;
 }

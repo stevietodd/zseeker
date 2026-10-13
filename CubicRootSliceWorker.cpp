@@ -1,6 +1,7 @@
 #include "CubicRootSliceWorker.hpp"
 
 #include <array>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -32,14 +33,20 @@ struct CubicRootSliceWorker::Impl {
     struct SliceSearchResult {
         long doubleHits = 0;
         long float128Hits = 0;
+        std::vector<int*>* hits = nullptr;
     };
 
     MYSQL* mysql_;
+    MysqlConnectInfo connectInfo_;
     PolynomialCheckerInterface* checker_;
     int workerId_ = -1;
     LutBounds bounds_{};
 
-    Impl(MYSQL* mysql, PolynomialCheckerInterface* checker);
+    Impl(MYSQL* mysql, MysqlConnectInfo connectInfo, PolynomialCheckerInterface* checker);
+    ~Impl();
+    void disconnectMysql();
+    bool connectMysql();
+    bool connectMysqlWithRetry();
     bool resolveWorkerId();
     bool runOneCubicRoot();
 
@@ -68,11 +75,70 @@ struct CubicRootSliceWorker::Impl {
 };
 
 
-CubicRootSliceWorker::Impl::Impl(MYSQL* mysql, PolynomialCheckerInterface* checker)
+CubicRootSliceWorker::Impl::Impl(MYSQL* mysql, MysqlConnectInfo connectInfo, PolynomialCheckerInterface* checker)
     : mysql_(mysql)
+    , connectInfo_(std::move(connectInfo))
     , checker_(checker)
     , bounds_(lutBoundsForChecker(checkerUsesPositiveOnlyQuint(checker)))
 {
+}
+
+CubicRootSliceWorker::Impl::~Impl() {
+    if (mysql_ != nullptr) {
+        mysql_close(mysql_);
+        mysql_ = nullptr;
+        std::cout << "MySQL connection closed." << std::endl;
+    }
+}
+
+void CubicRootSliceWorker::Impl::disconnectMysql() {
+    if (mysql_ == nullptr) {
+        return;
+    }
+    mysql_close(mysql_);
+    mysql_ = nullptr;
+    std::cout << "MySQL connection closed before slice search." << std::endl;
+}
+
+bool CubicRootSliceWorker::Impl::connectMysql() {
+    if (mysql_ != nullptr) {
+        return true;
+    }
+    mysql_ = mysql_init(nullptr);
+    if (mysql_ == nullptr) {
+        std::cerr << "Error: mysql_init failed" << std::endl;
+        return false;
+    }
+    if (!mysql_real_connect(
+            mysql_,
+            connectInfo_.host.c_str(),
+            connectInfo_.user.c_str(),
+            connectInfo_.password.c_str(),
+            connectInfo_.database.c_str(),
+            connectInfo_.port,
+            nullptr,
+            0)) {
+        std::cerr << "Error: mysql_real_connect failed: " << mysql_error(mysql_) << std::endl;
+        mysql_close(mysql_);
+        mysql_ = nullptr;
+        return false;
+    }
+    std::cout << "Reconnected to MySQL." << std::endl;
+    return true;
+}
+
+bool CubicRootSliceWorker::Impl::connectMysqlWithRetry() {
+    constexpr int kAttempts = 5;
+    for (int attempt = 1; attempt <= kAttempts; ++attempt) {
+        if (connectMysql()) {
+            return true;
+        }
+        if (attempt < kAttempts) {
+            std::cerr << "Retrying MySQL connect (" << attempt << "/" << kAttempts << ")..." << std::endl;
+            sleep(2);
+        }
+    }
+    return false;
 }
 
 bool CubicRootSliceWorker::Impl::resolveWorkerId() {
@@ -512,18 +578,17 @@ CubicRootSliceWorker::Impl::SliceSearchResult CubicRootSliceWorker::Impl::execut
     std::vector<int> loopRanges = makeQuinticFirstSliceLoopRanges(s.quintLo, s.quintHi, s.quartLo, s.quartHi);
     long doubleHitCount = 0;
     std::vector<int*>* hits = checker_->findHits(ZETA5, theConst, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);
+    result.hits = hits;
     result.doubleHits = doubleHitCount;
-    result.float128Hits = static_cast<long>(hits->size());
+    result.float128Hits = hits ? static_cast<long>(hits->size()) : 0;
 
-    for (size_t i = 0; i < hits->size(); i++) {
-        int* hit = hits->at(i);
-        std::cout << "Hit = " << hit[0] << "," << hit[1] << "," << hit[2] << "," << hit[3] << "," << hit[4] << ","
-                  << hit[5] << "," << std::endl;
+    if (hits) {
+        for (size_t i = 0; i < hits->size(); i++) {
+            int* hit = hits->at(i);
+            std::cout << "Hit = " << hit[0] << "," << hit[1] << "," << hit[2] << "," << hit[3] << "," << hit[4] << ","
+                      << hit[5] << "," << std::endl;
+        }
     }
-    if (!insertFloat128Hits(s.cubicRootId, s.zrootSlot, hits)) {
-        std::cerr << "Error: failed to persist float128 hit coefficients for slice id " << s.sliceId << std::endl;
-    }
-    freeHitsVector(hits);
     return result;
 }
 
@@ -598,11 +663,34 @@ void CubicRootSliceWorker::Impl::processCubicRoot(int cubicRootId) {
 }
 
 void CubicRootSliceWorker::Impl::runOneSlice(const SliceWorkItem& s) {
-    persistSliceResult(s, executeSliceSearch(s));
+    const bool longSearch = s.zrootVal.has_value();
+    if (longSearch) {
+        disconnectMysql();
+    }
+
+    const SliceSearchResult result = executeSliceSearch(s);
+
+    if (longSearch && !connectMysqlWithRetry()) {
+        std::cerr << "Error: could not reconnect to MySQL after slice id " << s.sliceId
+                  << "; hits were not saved." << std::endl;
+        freeHitsVector(result.hits);
+        std::exit(1);
+    }
+    if (!insertFloat128Hits(s.cubicRootId, s.zrootSlot, result.hits)) {
+        std::cerr << "Error: failed to persist float128 hit coefficients for slice id " << s.sliceId << std::endl;
+        freeHitsVector(result.hits);
+        std::exit(1);
+    }
+    freeHitsVector(result.hits);
+    if (!persistSliceResult(s, result)) {
+        std::cerr << "Error: failed to record finished slice id " << s.sliceId << std::endl;
+        std::exit(1);
+    }
 }
 
-CubicRootSliceWorker::CubicRootSliceWorker(MYSQL* mysql, PolynomialCheckerInterface* checker)
-    : impl_(std::make_unique<Impl>(mysql, checker))
+CubicRootSliceWorker::CubicRootSliceWorker(
+    MYSQL* mysql, MysqlConnectInfo connectInfo, PolynomialCheckerInterface* checker)
+    : impl_(std::make_unique<Impl>(mysql, std::move(connectInfo), checker))
 {
 }
 
