@@ -9,7 +9,11 @@
 #include <unistd.h>
 #include <vector>
 
+#include <quadmath.h>
+
 #include "GpuPolynomialChecker.hpp"
+#include "Z3RootFinder.hpp"
+#include "hitRefinement.hpp"
 #include "lookupTableAccessor.hpp"
 #include "math.hpp"
 #include "sliceTiling.hpp"
@@ -41,6 +45,12 @@ struct CubicRootSliceWorker::Impl {
     PolynomialCheckerInterface* checker_;
     int workerId_ = -1;
     LutBounds bounds_{};
+    // c^3 LUT index for this run. z3_cubic_roots has no jk column; the current sweep is jk = 0.
+    int jkIndex_ = 0;
+    LUTIndexCalculator indexCalculator_{};
+    Z3RootFinder rootFinder_{};
+    int cachedCubicRootId_ = -1;
+    Z3Roots cachedRoots_{};
 
     Impl(MYSQL* mysql, MysqlConnectInfo connectInfo, PolynomialCheckerInterface* checker);
     ~Impl();
@@ -54,7 +64,8 @@ struct CubicRootSliceWorker::Impl {
     static void freeHitsVector(std::vector<int*>* hits);
 
     std::optional<int> lookupWorkerId();
-    std::array<std::optional<double>, 4> loadZroots(int cubicRootId);
+    void cacheRoots(int cubicRootId);
+    bool hasRealRoot(int slot) const;
     std::optional<int> fetchSingleInt(const std::string& q);
     std::optional<int> peekPendingSliceRoot();
     std::optional<int> peekStartedRootWithNoSlices();
@@ -212,32 +223,32 @@ std::optional<int> CubicRootSliceWorker::Impl::lookupWorkerId() {
     return workerId;
 }
 
-std::array<std::optional<double>, 4> CubicRootSliceWorker::Impl::loadZroots(int cubicRootId) {
-    std::array<std::optional<double>, 4> zroots{};
-    std::string q = "SELECT zroot1, zroot2, zroot3 FROM z3_cubic_roots WHERE id = " + std::to_string(cubicRootId) + " LIMIT 1";
-    if (mysql_query(mysql_, q.c_str())) {
-        std::cerr << "Error: z3_cubic_roots query failed: " << mysql_error(mysql_) << std::endl;
-        return zroots;
+void CubicRootSliceWorker::Impl::cacheRoots(int cubicRootId) {
+    if (cachedCubicRootId_ == cubicRootId) {
+        return;
     }
-    MYSQL_RES* result = mysql_store_result(mysql_);
-    if (!result) {
-        std::cerr << "Error: mysql_store_result failed for z3_cubic_roots" << std::endl;
-        return zroots;
+    cachedCubicRootId_ = cubicRootId;
+    cachedRoots_ = {};
+    CoeffIndexes indexes;
+    if (!indexCalculator_.fromCubicRootId(static_cast<uint32_t>(cubicRootId), jkIndex_, &indexes)) {
+        std::cerr << "Error: cubic_root_id " << cubicRootId << " is outside the coefficient id space" << std::endl;
+        return;
     }
-    MYSQL_ROW row = mysql_fetch_row(result);
-    if (row) {
-        if (row[0]) {
-            zroots[1] = std::stod(row[0]);
+    cachedRoots_ = rootFinder_.rootsFor(indexes);
+    std::cout << "cubic_root_id " << cubicRootId << " jk=" << indexes.jk << " mn=" << indexes.mn
+              << " pq=" << indexes.pq << " rs=" << indexes.rs << std::endl;
+    for (int slot = 0; slot < 3; ++slot) {
+        if (cachedRoots_.root[slot] == 0) {
+            continue;
         }
-        if (row[1]) {
-            zroots[2] = std::stod(row[1]);
-        }
-        if (row[2]) {
-            zroots[3] = std::stod(row[2]);
-        }
+        char buf[128];
+        quadmath_snprintf(buf, sizeof(buf), "%.34Qf", cachedRoots_.root[slot]);
+        std::cout << "zroot" << (slot + 1) << " float128 " << buf << std::endl;
     }
-    mysql_free_result(result);
-    return zroots;
+}
+
+bool CubicRootSliceWorker::Impl::hasRealRoot(int slot) const {
+    return slot >= 1 && slot <= 3 && cachedRoots_.root[slot - 1] != 0;
 }
 
 std::optional<int> CubicRootSliceWorker::Impl::fetchSingleInt(const std::string& q) {
@@ -364,10 +375,10 @@ bool CubicRootSliceWorker::Impl::insertSliceBatchUnstarted(int cubicRootId, int 
 }
 
 bool CubicRootSliceWorker::Impl::enqueueNextTilesForRoot(int cubicRootId) {
-    const auto zroots = loadZroots(cubicRootId);
+    cacheRoots(cubicRootId);
     bool any = false;
     for (int slot = 1; slot <= 3; ++slot) {
-        if (!zroots[slot].has_value()) {
+        if (!hasRealRoot(slot)) {
             continue;
         }
         TileRect last{};
@@ -436,9 +447,8 @@ std::vector<CubicRootSliceWorker::Impl::SliceWorkItem> CubicRootSliceWorker::Imp
     std::cout << "Updated " << ids.size() << " rows in roots_checked_slice to is_started = 1 and worker_id = " << workerId_ << std::endl;
 
     std::string selectQuery =
-        "SELECT s.id, s.cubic_root_id, s.zroot_slot, s.quint_lo, s.quint_hi, s.quart_lo, s.quart_hi, "
-        "z.zroot1, z.zroot2, z.zroot3 FROM roots_checked_slice s "
-        "INNER JOIN z3_cubic_roots z ON z.id = s.cubic_root_id WHERE s.id IN (";
+        "SELECT s.id, s.cubic_root_id, s.zroot_slot, s.quint_lo, s.quint_hi, s.quart_lo, s.quart_hi "
+        "FROM roots_checked_slice s WHERE s.id IN (";
     for (size_t i = 0; i < ids.size(); ++i) {
         selectQuery += std::to_string(ids[i]);
         if (i < ids.size() - 1) {
@@ -471,16 +481,9 @@ std::vector<CubicRootSliceWorker::Impl::SliceWorkItem> CubicRootSliceWorker::Imp
         item.quartLo = std::stoi(row[5]);
         item.quartHi = std::stoi(row[6]);
 
-        std::optional<double> z1 = (row[7] != nullptr) ? std::optional<double>(std::stod(row[7])) : std::nullopt;
-        std::optional<double> z2 = (row[8] != nullptr) ? std::optional<double>(std::stod(row[8])) : std::nullopt;
-        std::optional<double> z3 = (row[9] != nullptr) ? std::optional<double>(std::stod(row[9])) : std::nullopt;
-
-        if (item.zrootSlot == 1) {
-            item.zrootVal = z1;
-        } else if (item.zrootSlot == 2) {
-            item.zrootVal = z2;
-        } else if (item.zrootSlot == 3) {
-            item.zrootVal = z3;
+        cacheRoots(item.cubicRootId);
+        if (hasRealRoot(item.zrootSlot)) {
+            item.zrootVal = cachedRoots_.asDouble(item.zrootSlot - 1);
         }
         items.push_back(item);
     }
@@ -566,10 +569,11 @@ CubicRootSliceWorker::Impl::SliceSearchResult CubicRootSliceWorker::Impl::execut
               << s.quartLo << "," << s.quartHi << "] ===" << std::endl;
 
     if (!s.zrootVal.has_value()) {
-        std::cerr << "Warning: zroot is NULL for slice id " << s.sliceId << "; marking finished with 0 hits." << std::endl;
+        std::cerr << "Warning: no real zroot for slice id " << s.sliceId << "; marking finished with 0 hits." << std::endl;
         return result;
     }
 
+    cacheRoots(s.cubicRootId);
     const double theConst = s.zrootVal.value();
     std::cout << "theConst = " << theConst << std::endl;
     if (theConst < 0) {
@@ -578,6 +582,9 @@ CubicRootSliceWorker::Impl::SliceSearchResult CubicRootSliceWorker::Impl::execut
     std::vector<int> loopRanges = makeQuinticFirstSliceLoopRanges(s.quintLo, s.quintHi, s.quartLo, s.quartHi);
     long doubleHitCount = 0;
     std::vector<int*>* hits = checker_->findHits(ZETA5, theConst, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);
+    if (hits && hasRealRoot(s.zrootSlot)) {
+        refineHitsWithFloat128Ulp(hits, zeta5Float128(), cachedRoots_.root[s.zrootSlot - 1]);
+    }
     result.hits = hits;
     result.doubleHits = doubleHitCount;
     result.float128Hits = hits ? static_cast<long>(hits->size()) : 0;
@@ -627,10 +634,10 @@ void CubicRootSliceWorker::Impl::processCubicRoot(int cubicRootId) {
     std::cout << "Processing cubic_root_id " << cubicRootId
               << "; this worker will keep claiming its slices until the root is done." << std::endl;
 
-    const auto zroots = loadZroots(cubicRootId);
+    cacheRoots(cubicRootId);
     bool anySlot = false;
     for (int slot = 1; slot <= 3; ++slot) {
-        if (zroots[slot].has_value()) {
+        if (hasRealRoot(slot)) {
             anySlot = true;
             break;
         }

@@ -37,6 +37,7 @@ CMakeCache.txt
 .settings/
 .idea/
 build/
+build*test/
 debug/
 .vscode/
 *.pc

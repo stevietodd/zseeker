@@ -48,4 +48,11 @@ static inline float getFloatPrecisionBasedOnMaxValue(const float maxValue) {
 	//return pow(2, (floor(log2(abs(maxValue ?: 1))) - 23));  //TODO: MegaMan explore speedup with this!
 }
 
+// binary128 has 112 explicit significand bits. Subtract 111, matching the one-bit
+// slack above (float subtracts 22, double subtracts 51). The result is a power of
+// two, so it is exact in double and can be compared later in __float128.
+static inline double getFloat128PrecisionBasedOnMaxValue(const double maxValue) {
+    return pow(2, (floor(log2(abs(maxValue ?: 1))) - 111));
+}
+
 #endif // MATH_HPP
