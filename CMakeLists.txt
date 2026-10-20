@@ -80,6 +80,7 @@ add_executable(
   CubicRootSliceWorker.hpp
   sliceTiling.hpp
   hitRefinement.cpp
+  Z3RootFinder.cpp
   PolynomialCheckerInterface.hpp
   CpuPolynomialChecker.hpp
   CpuQuinticLastChecker.cpp
@@ -196,6 +197,18 @@ target_link_libraries(
 )
 
 add_executable(
+  Z3RootFinderTestSuite
+  test/Z3RootFinderTestSuite.cpp
+  Z3RootFinder.cpp
+  lookupTableAccessor.cpp
+)
+target_link_libraries(
+  Z3RootFinderTestSuite
+  GTest::gtest_main
+  quadmath
+)
+
+add_executable(
   CubicRootSliceWorkerTestSuite
   test/CubicRootSliceWorkerTestSuite.cpp
 )
@@ -210,3 +223,4 @@ gtest_discover_tests(PrecisionTestSuite)
 gtest_discover_tests(ArithmeticTestSuite)
 gtest_discover_tests(CpuPolynomialCheckerTestSuite)
 gtest_discover_tests(CubicRootSliceWorkerTestSuite)
+gtest_discover_tests(Z3RootFinderTestSuite)

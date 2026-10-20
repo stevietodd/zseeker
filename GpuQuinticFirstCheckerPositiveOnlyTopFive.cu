@@ -2,6 +2,7 @@
 #include "hitRefinement.hpp"
 #include "math.hpp"
 #include "lookupTableAccessor.hpp"
+#include "positiveOnlySkip.hpp"
 
 #include "cudawrapper.hpp"
 #include <iostream>
@@ -171,6 +172,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFive::findHits(
     const std::vector<int> *loopRanges,
     long& doubleHitCount
 ) {
+    const double searchConst = std::fabs(theConst);
     int loopStartEnds[12] = {0, 608'383, -152'231, 152'231, -6'087, 6'087, -2'203, 2'203, -555, 555, -143, 143};
     int coeffArraySize = 608'384;
 
@@ -186,19 +188,28 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFive::findHits(
         }
     }
 
+    if (positiveOnlyKernelHasNoWork(loopStartEnds)) {
+        std::cout << "Skipping GPU kernel: positive-only symmetry leaves no work in quint=["
+                  << loopStartEnds[0] << "," << loopStartEnds[1] << "] quart=["
+                  << loopStartEnds[2] << "," << loopStartEnds[3] << "] cubic=["
+                  << loopStartEnds[4] << "," << loopStartEnds[5] << "]" << std::endl;
+        doubleHitCount = 0;
+        return new std::vector<int*>();
+    }
+
     float floatTol = FLOAT_POS_ERROR_DEFAULT;
     double doubleTol = DOUBLE_POS_ERROR_DEFAULT;
-    const double theConst2 = powl(theConst, (double)2);
-    const double theConst3 = powl(theConst, (double)3);
-    const double theConst4 = powl(theConst, (double)4);
-    const double theConst5 = powl(theConst, (double)5);
+    const double theConst2 = powl(searchConst, (double)2);
+    const double theConst3 = powl(searchConst, (double)3);
+    const double theConst4 = powl(searchConst, (double)4);
+    const double theConst5 = powl(searchConst, (double)5);
 
     const float needlef = (float)needle;
     const float theConst5f = (float)theConst5;
     const float theConst4f = (float)theConst4;
     const float theConst3f = (float)theConst3;
     const float theConst2f = (float)theConst2;
-    const float theConstf = (float)theConst;
+    const float theConstf = (float)searchConst;
 
     const int quintStart = loopStartEnds[0];
     const int quintEnd = loopStartEnds[1];
@@ -378,7 +389,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFive::findHits(
 
         compareToZeta5loopPositiveOnlyTopFive<<<gridsizes, blocksizes>>>(
             d_out,
-            theConst,
+            searchConst,
             needle,
             d_coeffArray,
             d_doubleCoeffArray,
@@ -448,6 +459,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFive::findHits(
     delete[] out;
 
     doubleHitCount = h_doubleHitCount;
-    refineHitsWithFloat128Precision(results, needle, theConst);
+    refineHitsWithFloat128Precision(results, needle, searchConst);
+    remapHitsForNegativeZroot(results, theConst);
     return results;
 }

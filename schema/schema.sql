@@ -76,9 +76,9 @@ CREATE TABLE `roots_checked` (
 
 --
 -- Fine-grained work units: one row per (cubic root, zroot slot, quint x quart rectangle).
--- zseeker2 always uses this queue and always tiles each zroot slot as 1 quintic by 100
--- quartics (the last quart strip of each quint may be shorter). populate_slices_for_cubic_root
--- can still tile the full LUT at a fixed chunk size for manual use.
+-- zseeker2 always uses this queue and always tiles each zroot slot as 1 quintic by
+-- 1000 quartics (the last strips of each slot may be shorter).
+-- populate_slices_for_cubic_root can still tile the full LUT at a fixed chunk size for manual use.
 --
 
 DROP TABLE IF EXISTS `roots_checked_slice`;
@@ -101,6 +101,28 @@ CREATE TABLE `roots_checked_slice` (
   UNIQUE KEY `uq_slice_tile` (`cubic_root_id`,`zroot_slot`,`quint_lo`,`quint_hi`,`quart_lo`,`quart_hi`),
   KEY `idx_slice_pending` (`is_started`,`is_finished`,`id`),
   KEY `idx_slice_cubic` (`cubic_root_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- One row per float128-refined hit: LUT indices of the six quintic coefficients.
+-- lut_index_5 is the c^5 term through lut_index_0, the constant term. Values may be
+-- negative (signed LUT). Duplicate rows are allowed.
+--
+
+DROP TABLE IF EXISTS `float128_hits`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `float128_hits` (
+  `cubic_root_id` int unsigned NOT NULL,
+  `zroot_slot` tinyint unsigned NOT NULL COMMENT '1, 2, or 3 — matches zroot1..zroot3',
+  `lut_index_5` int NOT NULL,
+  `lut_index_4` int NOT NULL,
+  `lut_index_3` int NOT NULL,
+  `lut_index_2` int NOT NULL,
+  `lut_index_1` int NOT NULL,
+  `lut_index_0` int NOT NULL,
+  KEY `idx_float128_hits_cubic` (`cubic_root_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

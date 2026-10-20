@@ -14,6 +14,8 @@ class PolynomialCheckerInterface
         // note that the loopRanges define indexes of coeffArray to search through
         // doubleHitCount is the number of double-verified hits (before float128 refinement).
         // After return, hits->size() is the number of hits that also pass float128 refinement.
+        // Search uses |theConst| so breakouts stay conservative; if theConst was negative,
+        // returned LUT indices are remapped (odd degrees negated) to evaluate at theConst.
         virtual std::vector<int*>* findHits(
             const double needle,
             const double theConst,

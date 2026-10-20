@@ -59,3 +59,13 @@ TEST(PrecisionTestSuite, AllowedDoublePrecisionBasedOnMaxValueTest) {
    EXPECT_DOUBLE_EQ(1, getDoublePrecisionBasedOnMaxValue(-4'503'599'627'370'468));
    EXPECT_DOUBLE_EQ(2, getDoublePrecisionBasedOnMaxValue(4'503'599'627'370'496));
 }
+
+TEST(PrecisionTestSuite, AllowedFloat128PrecisionBasedOnMaxValueTest) {
+   EXPECT_DOUBLE_EQ(0x1p-111, getFloat128PrecisionBasedOnMaxValue(1));
+   EXPECT_DOUBLE_EQ(0x1p-111, getFloat128PrecisionBasedOnMaxValue(0));
+   EXPECT_DOUBLE_EQ(0x1p-111, getFloat128PrecisionBasedOnMaxValue(-1));
+   EXPECT_DOUBLE_EQ(0x1p-111, getFloat128PrecisionBasedOnMaxValue(1.99));
+   EXPECT_DOUBLE_EQ(0x1p-110, getFloat128PrecisionBasedOnMaxValue(2));
+   EXPECT_DOUBLE_EQ(0x1p-102, getFloat128PrecisionBasedOnMaxValue(1000));
+   EXPECT_DOUBLE_EQ(0x1p-102, getFloat128PrecisionBasedOnMaxValue(-1000));
+}
