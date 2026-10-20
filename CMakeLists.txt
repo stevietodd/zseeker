@@ -50,7 +50,10 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=1000000000 -O3")
 set(CMAKE_CUDA_STANDARD 17)
-set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES /usr/include/cuda)
+# This host keeps the toolkit headers here. The NVIDIA CUDA images use /usr/local/cuda/include.
+if(EXISTS "/usr/include/cuda")
+  set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES /usr/include/cuda)
+endif()
 #target_include_directories(GpuPolynomialCheckerTestSuite AFTER PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 # I need the section below to avoid getting an error for empty CUDA_ARCHITECTURES
 # TODO: Eventually on CMake 3.23 I can just use 'all' or in 3.24 'native' instead

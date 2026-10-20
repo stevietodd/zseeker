@@ -1,1 +1,12 @@
-build/
+.git
+.github
+build
+build*test
+*.pdf
+*.aux
+*.out
+*.toc
+*.nvprof
+*.nsys-rep
+nvprof_trace.txt
+PrintLUTFractions.cpp

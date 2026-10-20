@@ -34,6 +34,17 @@ export DB_PASSWORD=...
 ./zseeker2 gfpo
 ```
 
+The same binary runs in the CUDA image. The container hostname has to match a `workers.hostname` row, and `DB_HOST` has to be reachable from inside the container (`--network host` when the database is on this machine):
+
+```sh
+docker build -t zseeker .
+docker run --gpus all --network host --hostname "$(hostname)" \
+    -e DB_HOST -e DB_USER -e DB_PASSWORD \
+    zseeker
+```
+
+Pass another checker name to replace `gfpo`, for example `docker run ... zseeker cf`. The image targets compute capability 7.5.
+
 Checker argument (default is CPU quintic-first with breakouts):
 
 | Arg | Checker |
