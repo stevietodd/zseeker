@@ -2,6 +2,7 @@
 #define Z3_ROOT_FINDER_HPP
 
 #include "LUTIndexCalculator.hpp"
+#include "float128.hpp"
 
 #include <cstdint>
 
@@ -10,7 +11,7 @@
 // cubicroot_wolfram / quadraticroot_wolfram, so root[0], root[1], root[2]
 // are zroot1, zroot2, zroot3.
 struct Z3Roots {
-    __float128 root[3] = {0, 0, 0};
+    Float128 root[3] = {0, 0, 0};
 
     double asDouble(int slot) const {
         return static_cast<double>(root[slot]);

@@ -15,9 +15,12 @@ RUN cmake -S /src -B /build -DCMAKE_BUILD_TYPE=Release \
 
 FROM nvidia/cuda:12.2.2-runtime-ubuntu22.04
 
+# libquadmath0 exists only on amd64. aarch64 long double is already binary128.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libmysqlclient21 \
-        libquadmath0 \
+    && if [ "$(dpkg --print-architecture)" = "amd64" ]; then \
+         apt-get install -y --no-install-recommends libquadmath0; \
+       fi \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /build/zseeker2 /usr/local/bin/zseeker2

@@ -9,11 +9,9 @@
 #include <iostream>
 #include <strings.h>
 
-#include <quadmath.h>
-
 constexpr int kMaxDen = 1000;
 
-static __float128 invDenF128[kMaxDen + 1];
+static Float128 invDenF128[kMaxDen + 1];
 static bool invDenReady = false;
 
 static long double parseLongDoubleOr(const char* name, long double defVal) {
@@ -34,40 +32,40 @@ static void ensureInvDenFloat128() {
     if (invDenReady) {
         return;
     }
-    invDenF128[0] = 0.0Q;
+    invDenF128[0] = ZS_F128(0.0);
     for (int d = 1; d <= kMaxDen; d++) {
-        invDenF128[d] = 1.0Q / static_cast<__float128>(d);
+        invDenF128[d] = ZS_F128(1.0) / static_cast<Float128>(d);
     }
     invDenReady = true;
 }
 
-static __float128 lutCoeffFloat128(int idx, const LutRational* rat) {
+static Float128 lutCoeffFloat128(int idx, const LutRational* rat) {
     ensureInvDenFloat128();
     const int absIdx = idx < 0 ? -idx : idx;
     const LutRational r = rat[absIdx];
-    const __float128 v = static_cast<__float128>(r.num) * invDenF128[r.den];
+    const Float128 v = static_cast<Float128>(r.num) * invDenF128[r.den];
     return idx < 0 ? -v : v;
 }
 
-static __float128 evalQuinticDirectFloat128(
+static Float128 evalQuinticDirectFloat128(
     int i5,
     int i4,
     int i3,
     int i2,
     int i1,
     int i0,
-    __float128 c1,
-    __float128 c2,
-    __float128 c3,
-    __float128 c4,
-    __float128 c5,
+    Float128 c1,
+    Float128 c2,
+    Float128 c3,
+    Float128 c4,
+    Float128 c5,
     const LutRational* rat) {
     return lutCoeffFloat128(i0, rat) + lutCoeffFloat128(i1, rat) * c1 + lutCoeffFloat128(i2, rat) * c2
          + lutCoeffFloat128(i3, rat) * c3 + lutCoeffFloat128(i4, rat) * c4 + lutCoeffFloat128(i5, rat) * c5;
 }
 
-static __float128 zeta3Float128Value() {
-    static const __float128 z = strtoflt128(
+static Float128 zeta3Float128Value() {
+    static const Float128 z = float128FromString(
         "1.2020569031595942853997381615114499907649862923404988817922715553", nullptr);
     return z;
 }
@@ -89,9 +87,9 @@ static bool lutIndexInRange(int idx) {
 
 static std::size_t filterHits(
     std::vector<int*>* hits,
-    __float128 needle,
-    __float128 theConst,
-    __float128 tol,
+    Float128 needle,
+    Float128 theConst,
+    Float128 tol,
     const char* label) {
     if (!hits || hits->empty()) {
         return hits ? hits->size() : 0;
@@ -99,17 +97,17 @@ static std::size_t filterHits(
 
     const LutRational* rat = getLookupTableRational();
     const std::size_t before = hits->size();
-    const __float128 c1 = theConst;
-    const __float128 c2 = c1 * c1;
-    const __float128 c3 = c2 * c1;
-    const __float128 c4 = c2 * c2;
-    const __float128 c5 = c4 * c1;
+    const Float128 c1 = theConst;
+    const Float128 c2 = c1 * c1;
+    const Float128 c3 = c2 * c1;
+    const Float128 c4 = c2 * c2;
+    const Float128 c5 = c4 * c1;
     std::vector<int*> kept;
     kept.reserve(hits->size());
     for (int* h : *hits) {
-        const __float128 v =
+        const Float128 v =
             evalQuinticDirectFloat128(h[0], h[1], h[2], h[3], h[4], h[5], c1, c2, c3, c4, c5, rat);
-        const __float128 d = v > needle ? v - needle : needle - v;
+        const Float128 d = v > needle ? v - needle : needle - v;
         if (d < tol) {
             kept.push_back(h);
         } else {
@@ -122,8 +120,8 @@ static std::size_t filterHits(
     return hits->size();
 }
 
-__float128 zeta5Float128() {
-    static const __float128 z = strtoflt128(
+Float128 zeta5Float128() {
+    static const Float128 z = float128FromString(
         "1.0369277551433699263313654864570341680570809195019128119741926779", nullptr);
     return z;
 }
@@ -134,7 +132,7 @@ bool polishZeta3Root(
     int pqIndex,
     int rsIndex,
     double zrootDouble,
-    __float128* polishedOut) {
+    Float128* polishedOut) {
     if (!polishedOut) {
         return false;
     }
@@ -145,22 +143,22 @@ bool polishZeta3Root(
     }
 
     const LutRational* rat = getLookupTableRational();
-    const __float128 a3 = lutCoeffFloat128(jkIndex, rat);
-    const __float128 a2 = lutCoeffFloat128(mnIndex, rat);
-    const __float128 a1 = lutCoeffFloat128(pqIndex, rat);
-    const __float128 a0 = lutCoeffFloat128(rsIndex, rat);
-    const __float128 zeta3 = zeta3Float128Value();
-    auto valueAt = [&](__float128 c) {
+    const Float128 a3 = lutCoeffFloat128(jkIndex, rat);
+    const Float128 a2 = lutCoeffFloat128(mnIndex, rat);
+    const Float128 a1 = lutCoeffFloat128(pqIndex, rat);
+    const Float128 a0 = lutCoeffFloat128(rsIndex, rat);
+    const Float128 zeta3 = zeta3Float128Value();
+    auto valueAt = [&](Float128 c) {
         return ((a3 * c + a2) * c + a1) * c + a0 - zeta3;
     };
-    auto derivAt = [&](__float128 c) {
+    auto derivAt = [&](Float128 c) {
         return (3 * a3 * c + 2 * a2) * c + a1;
     };
 
-    __float128 c = static_cast<__float128>(zrootDouble);
-    const __float128 initial = valueAt(c);
-    const __float128 absInitial = initial < 0 ? -initial : initial;
-    if (absInitial > 1.0e-8Q) {
+    Float128 c = static_cast<Float128>(zrootDouble);
+    const Float128 initial = valueAt(c);
+    const Float128 absInitial = initial < 0 ? -initial : initial;
+    if (absInitial > ZS_F128(1.0e-8)) {
         std::cerr << "Stored zroot does not satisfy (jk)c^3 + (mn)c^2 + (pq)c + (rs) = zeta(3)"
                   << " (residual=" << static_cast<double>(absInitial)
                   << "). Keeping the double root." << std::endl;
@@ -168,7 +166,7 @@ bool polishZeta3Root(
     }
 
     for (int step = 0; step < 2; ++step) {
-        const __float128 deriv = derivAt(c);
+        const Float128 deriv = derivAt(c);
         if (deriv == 0) {
             std::cerr << "Error: derivative vanished while polishing zroot" << std::endl;
             return false;
@@ -184,22 +182,22 @@ std::size_t refineHitsWithFloat128Precision(
     double needle,
     double theConst) {
     // default tol used to be 1e-24, but I increased it to 1e-12 to be more lenient
-    const __float128 tol = static_cast<__float128>(parseLongDoubleOr("ZSEEKER_REFINE_TOL", 1e-12L));
+    const Float128 tol = static_cast<Float128>(parseLongDoubleOr("ZSEEKER_REFINE_TOL", 1e-12L));
     return filterHits(
         hits,
-        static_cast<__float128>(needle),
-        static_cast<__float128>(theConst),
+        static_cast<Float128>(needle),
+        static_cast<Float128>(theConst),
         tol,
         "float128 rational");
 }
 
 std::size_t refineHitsWithFloat128Ulp(
     std::vector<int*>* hits,
-    __float128 needle,
-    __float128 theConst) {
+    Float128 needle,
+    Float128 theConst) {
     const double absC = std::fabs(static_cast<double>(theConst));
     const double bound = quinticCoeffBound(absC);
-    const __float128 tol = static_cast<__float128>(getFloat128PrecisionBasedOnMaxValue(bound));
+    const Float128 tol = static_cast<Float128>(getFloat128PrecisionBasedOnMaxValue(bound));
     return filterHits(hits, needle, theConst, tol, "float128 ulp");
 }
 

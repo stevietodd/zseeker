@@ -4,8 +4,6 @@
 #include "../Z3RootFinder.hpp"
 #include "../lookupTableAccessor.hpp"
 
-#include <quadmath.h>
-
 namespace {
 
 int indexOf(int num, int den) {
@@ -19,24 +17,24 @@ int indexOf(int num, int den) {
     return -1;
 }
 
-__float128 absDiff(__float128 a, __float128 b) {
-    const __float128 d = a - b;
+Float128 absDiff(Float128 a, Float128 b) {
+    const Float128 d = a - b;
     return d < 0 ? -d : d;
 }
 
-__float128 residual(const CoeffIndexes& indexes, __float128 c) {
+Float128 residual(const CoeffIndexes& indexes, Float128 c) {
     auto coeff = [](int idx) {
         const int absIdx = idx < 0 ? -idx : idx;
         const LutRational r = getLookupTableRational()[absIdx];
-        const __float128 value = static_cast<__float128>(r.num) / static_cast<__float128>(r.den);
+        const Float128 value = static_cast<Float128>(r.num) / static_cast<Float128>(r.den);
         return idx < 0 ? -value : value;
     };
-    const __float128 zeta3 = strtoflt128(
+    const Float128 zeta3 = float128FromString(
         "1.2020569031595942853997381615114499907649862923404988817922715553", nullptr);
-    const __float128 a3 = coeff(indexes.jk);
-    const __float128 a2 = coeff(indexes.mn);
-    const __float128 a1 = coeff(indexes.pq);
-    const __float128 a0 = coeff(indexes.rs);
+    const Float128 a3 = coeff(indexes.jk);
+    const Float128 a2 = coeff(indexes.mn);
+    const Float128 a1 = coeff(indexes.pq);
+    const Float128 a0 = coeff(indexes.rs);
     return ((a3 * c + a2) * c + a1) * c + a0 - zeta3;
 }
 
@@ -86,8 +84,8 @@ TEST(LUTIndexCalculator, OutOfRangeIdIsRejected) {
 
 TEST(Z3RootFinder, Id145MatchesKnownQuadraticRoots) {
     const Z3Roots roots = Z3RootFinder{}.rootsForId(145, 0);
-    const __float128 expected1 = strtoflt128("-0.7535813351441342316834305500884110381431", nullptr);
-    const __float128 expected2 = strtoflt128("-0.2636600441662105959027763464633130997879", nullptr);
+    const Float128 expected1 = float128FromString("-0.7535813351441342316834305500884110381431", nullptr);
+    const Float128 expected2 = float128FromString("-0.2636600441662105959027763464633130997879", nullptr);
     EXPECT_LT(static_cast<double>(absDiff(roots.root[0], expected1)), 1e-30);
     EXPECT_LT(static_cast<double>(absDiff(roots.root[1], expected2)), 1e-30);
     EXPECT_TRUE(roots.root[2] == 0);
@@ -98,7 +96,7 @@ TEST(Z3RootFinder, LinearRootIsZeta3AndMissingSlotsStayZero) {
     ASSERT_EQ(1, getLookupTableRational()[1].num);
     ASSERT_EQ(1, getLookupTableRational()[1].den);
     const Z3Roots roots = Z3RootFinder{}.rootsFor(CoeffIndexes{0, 0, 1, 0});
-    const __float128 zeta3 = strtoflt128(
+    const Float128 zeta3 = float128FromString(
         "1.2020569031595942853997381615114499907649862923404988817922715553", nullptr);
     EXPECT_TRUE(absDiff(roots.root[0], zeta3) == 0);
     EXPECT_TRUE(roots.root[1] == 0);

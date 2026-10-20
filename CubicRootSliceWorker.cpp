@@ -9,8 +9,6 @@
 #include <unistd.h>
 #include <vector>
 
-#include <quadmath.h>
-
 #include "GpuPolynomialChecker.hpp"
 #include "Z3RootFinder.hpp"
 #include "hitRefinement.hpp"
@@ -242,7 +240,7 @@ void CubicRootSliceWorker::Impl::cacheRoots(int cubicRootId) {
             continue;
         }
         char buf[128];
-        quadmath_snprintf(buf, sizeof(buf), "%.34Qf", cachedRoots_.root[slot]);
+        formatFloat128(buf, sizeof(buf), cachedRoots_.root[slot]);
         std::cout << "zroot" << (slot + 1) << " float128 " << buf << std::endl;
     }
 }

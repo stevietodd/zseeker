@@ -111,10 +111,17 @@ add_executable(
   lookupTableAccessor.cpp
 #   GpuNoLookupTableChecker.cu
 )
+# libquadmath is the x86_64 binary128 library. aarch64 uses long double instead.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64|AMD64")
+  set(ZSEEKER_LIBQUADMATH quadmath)
+else()
+  set(ZSEEKER_LIBQUADMATH)
+endif()
+
 target_link_libraries(
   GpuPolynomialCheckerTestSuite
   GTest::gtest_main
-  quadmath
+  ${ZSEEKER_LIBQUADMATH}
 )
 
 # Uncomment the below out to see detailed register and memory information for CUDA compilation
@@ -124,8 +131,7 @@ gtest_discover_tests(GpuPolynomialCheckerTestSuite)
 
 
 if(TARGET zseeker2)
-  # libquadmath: __float128 in hitRefinement.cpp
-  target_link_libraries(zseeker2 PRIVATE quadmath)
+  target_link_libraries(zseeker2 PRIVATE ${ZSEEKER_LIBQUADMATH})
 endif()
 
 enable_testing()
@@ -171,7 +177,7 @@ add_executable(
 target_link_libraries(
   HitRefinementTestSuite
   GTest::gtest_main
-  quadmath
+  ${ZSEEKER_LIBQUADMATH}
 )
 
 add_executable(
@@ -196,7 +202,7 @@ add_executable(
 target_link_libraries(
   CpuPolynomialCheckerTestSuite
   GTest::gtest_main
-  quadmath
+  ${ZSEEKER_LIBQUADMATH}
 )
 
 add_executable(
@@ -208,7 +214,7 @@ add_executable(
 target_link_libraries(
   Z3RootFinderTestSuite
   GTest::gtest_main
-  quadmath
+  ${ZSEEKER_LIBQUADMATH}
 )
 
 add_executable(
