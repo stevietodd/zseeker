@@ -1,10 +1,13 @@
 #include "CubicRootSliceWorker.hpp"
 
 #include <array>
+#include <chrono>
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <unistd.h>
 #include <vector>
@@ -36,6 +39,9 @@ struct CubicRootSliceWorker::Impl {
         long doubleHits = 0;
         long float128Hits = 0;
         std::vector<int*>* hits = nullptr;
+        double kernelSec = 0.0;
+        double findHitsSec = 0.0;
+        double ulpSec = 0.0;
     };
 
     MYSQL* mysql_;
@@ -81,6 +87,7 @@ struct CubicRootSliceWorker::Impl {
     bool insertFloat128Hits(int cubicRootId, int zrootSlot, const std::vector<int*>* hits);
     void processCubicRoot(int cubicRootId);
     void runOneSlice(const SliceWorkItem& s);
+    void logSliceMetric(const SliceWorkItem& s, const SliceSearchResult& result, double dbSec, double wallSec) const;
 };
 
 
@@ -579,9 +586,16 @@ CubicRootSliceWorker::Impl::SliceSearchResult CubicRootSliceWorker::Impl::execut
     }
     std::vector<int> loopRanges = makeQuinticFirstSliceLoopRanges(s.quintLo, s.quintHi, s.quartLo, s.quartHi);
     long doubleHitCount = 0;
+    const auto find0 = std::chrono::steady_clock::now();
     std::vector<int*>* hits = checker_->findHits(ZETA5, theConst, 5, getLookupTableFloat(), &loopRanges, doubleHitCount);
+    const auto find1 = std::chrono::steady_clock::now();
+    result.findHitsSec = std::chrono::duration<double>(find1 - find0).count();
+    result.kernelSec = checker_->lastKernelSeconds();
     if (hits && hasRealRoot(s.zrootSlot)) {
+        const auto ulp0 = std::chrono::steady_clock::now();
         refineHitsWithFloat128Ulp(hits, zeta5Float128(), cachedRoots_.root[s.zrootSlot - 1]);
+        const auto ulp1 = std::chrono::steady_clock::now();
+        result.ulpSec = std::chrono::duration<double>(ulp1 - ulp0).count();
     }
     result.hits = hits;
     result.doubleHits = doubleHitCount;
@@ -667,7 +681,27 @@ void CubicRootSliceWorker::Impl::processCubicRoot(int cubicRootId) {
     finalizeRootsCheckedIfAllSlicesDone(cubicRootId);
 }
 
+void CubicRootSliceWorker::Impl::logSliceMetric(
+    const SliceWorkItem& s, const SliceSearchResult& result, double dbSec, double wallSec) const
+{
+    std::ostringstream line;
+    line.setf(std::ios::fixed);
+    line.precision(1);
+    line << "slice_metric id=" << s.sliceId
+         << " device=\"" << checker_->deviceName() << "\""
+         << " sms=" << checker_->deviceSms()
+         << " kernel_sec=" << result.kernelSec
+         << " findhits_sec=" << result.findHitsSec
+         << " ulp_sec=" << result.ulpSec
+         << " db_sec=" << dbSec
+         << " wall_sec=" << wallSec
+         << " double_hits=" << result.doubleHits
+         << " float128_hits=" << result.float128Hits;
+    std::cout << line.str() << std::endl;
+}
+
 void CubicRootSliceWorker::Impl::runOneSlice(const SliceWorkItem& s) {
+    const auto wall0 = std::chrono::steady_clock::now();
     const bool longSearch = s.zrootVal.has_value();
     if (longSearch) {
         disconnectMysql();
@@ -675,20 +709,28 @@ void CubicRootSliceWorker::Impl::runOneSlice(const SliceWorkItem& s) {
 
     const SliceSearchResult result = executeSliceSearch(s);
 
+    const auto db0 = std::chrono::steady_clock::now();
+    bool saved = true;
     if (longSearch && !connectMysqlWithRetry()) {
         std::cerr << "Error: could not reconnect to MySQL after slice id " << s.sliceId
                   << "; hits were not saved." << std::endl;
-        freeHitsVector(result.hits);
-        std::exit(1);
-    }
-    if (!insertFloat128Hits(s.cubicRootId, s.zrootSlot, result.hits)) {
+        saved = false;
+    } else if (!insertFloat128Hits(s.cubicRootId, s.zrootSlot, result.hits)) {
         std::cerr << "Error: failed to persist float128 hit coefficients for slice id " << s.sliceId << std::endl;
-        freeHitsVector(result.hits);
-        std::exit(1);
+        saved = false;
     }
     freeHitsVector(result.hits);
-    if (!persistSliceResult(s, result)) {
+    if (saved && !persistSliceResult(s, result)) {
         std::cerr << "Error: failed to record finished slice id " << s.sliceId << std::endl;
+        saved = false;
+    }
+    const auto wall1 = std::chrono::steady_clock::now();
+    logSliceMetric(
+        s,
+        result,
+        std::chrono::duration<double>(wall1 - db0).count(),
+        std::chrono::duration<double>(wall1 - wall0).count());
+    if (!saved) {
         std::exit(1);
     }
 }

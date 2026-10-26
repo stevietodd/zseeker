@@ -5,6 +5,7 @@
 #include "positiveOnlySkip.hpp"
 
 #include "cudawrapper.hpp"
+#include <cstring>
 #include <iostream>
 using namespace std;
 
@@ -172,6 +173,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFive::findHits(
     const std::vector<int> *loopRanges,
     long& doubleHitCount
 ) {
+    lastKernelSeconds_ = 0.0;
     const double searchConst = std::fabs(theConst);
     int loopStartEnds[12] = {0, 608'383, -152'231, 152'231, -6'087, 6'087, -2'203, 2'203, -555, 555, -143, 143};
     int coeffArraySize = 608'384;
@@ -256,6 +258,9 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFive::findHits(
         doubleHitCount = 0;
         return results;
     }
+    std::strncpy(deviceName_, prop.name, sizeof(deviceName_) - 1);
+    deviceName_[sizeof(deviceName_) - 1] = '\0';
+    deviceSms_ = prop.multiProcessorCount;
 
     floatTol = getFloatPrecisionBasedOnMaxValue(
         std::max(1000.0f,
@@ -424,6 +429,7 @@ std::vector<int*>* GpuQuinticFirstCheckerPositiveOnlyTopFive::findHits(
     cudaEventRecord(kernelStop);
     cudaEventSynchronize(kernelStop);
     cudaEventElapsedTime(&kernelTimeMs, kernelStart, kernelStop);
+    lastKernelSeconds_ = static_cast<double>(kernelTimeMs) / 1000.0;
     cout << "Kernel execution time (topFive, batched): " << kernelTimeMs << " ms" << endl;
     cudaEventDestroy(kernelStart);
     cudaEventDestroy(kernelStop);

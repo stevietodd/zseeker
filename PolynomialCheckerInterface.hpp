@@ -25,6 +25,11 @@ class PolynomialCheckerInterface
             long& doubleHitCount
         ) = 0;
 
+        // Filled by GPU checkers during the most recent findHits. CPU checkers leave these empty.
+        virtual double lastKernelSeconds() const { return 0.0; }
+        virtual const char* deviceName() const { return ""; }
+        virtual int deviceSms() const { return 0; }
+
         void printHit(const double* coeffArray, const int i5, const int i4, const int i3, const int i2, const int i1, const int i0)
         {
             printf("%10.20lf*c^5 + %10.20lf*c^4 + %10.20lf*c^3 + %10.20lf*c^2 + %10.20lf*c + %10.20lf # HIT! coeffs=(%d,%d,%d,%d,%d,%d)\n",

@@ -82,6 +82,15 @@ class GpuQuinticFirstCheckerPositiveOnlyTopFive : public PolynomialCheckerInterf
             const std::vector<int> *loopRanges,
             long& doubleHitCount
         );
+
+        double lastKernelSeconds() const override { return lastKernelSeconds_; }
+        const char* deviceName() const override { return deviceName_; }
+        int deviceSms() const override { return deviceSms_; }
+
+    private:
+        double lastKernelSeconds_ = 0.0;
+        int deviceSms_ = 0;
+        char deviceName_[256] = {};
 };
 
 /** Same geometry as TopFive; z loop is compiler-unrolled in-kernel (megaman5). */
